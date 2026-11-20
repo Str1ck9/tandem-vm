@@ -21,7 +21,8 @@ jobs:
       - name: Swift tests
         working-directory: host
         # Some tests need local sockets, disk images or a signed app; those skip or may fail on a hosted runner.
-        run: swift test
+        # Two helper tests attach real disk images and talk to diskutil, which the hosted runner does not allow.
+        run: swift test --skip testDiskThatIsDroppedWithoutReleaseStaysUnmounted --skip testOnlyWholeUSBDisksAreHandedOver
         env:
           # The hosted runner is smaller than the Macs the tests' settings assume (4 CPUs, 8 GB).
           TANDEM_HOST_CPUS: "8"
