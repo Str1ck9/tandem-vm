@@ -1,0 +1,218 @@
+--- a/ui/meson.build	2026-11-15 20:15:18
++++ b/ui/meson.build	2026-11-15 20:15:18
+@@ -70,8 +70,14 @@
+ 
+ if opengl.found()
+   egl_headless_ss = ss.source_set()
+-  egl_headless_ss.add(when: [egl, opengl, gbm, pixman],
+-                      if_true: files('egl-headless.c'))
++  # On macOS there is no render node: egl-headless renders with Apple's OpenGL (CGL) or ANGLE instead.
++  if host_os == 'darwin'
++    egl_headless_ss.add(when: [egl, opengl],
++                        if_true: [files('egl-headless.c'), pixman, quartzcore])
++  else
++    egl_headless_ss.add(when: [egl, opengl, gbm, pixman],
++                        if_true: files('egl-headless.c'))
++  endif
+   ui_modules += {'egl-headless' : egl_headless_ss}
+ endif
+ 
+--- a/ui/egl-headless.c	2026-11-15 20:15:18
++++ b/ui/egl-headless.c	2026-11-15 20:15:18
+@@ -7,6 +7,52 @@
+ #include "ui/egl-context.h"
+ #include "ui/shader.h"
+ 
++#ifdef CONFIG_DARWIN
++/*
++ * macOS has no DRI render node. With gl=core (the default) the GL work is done in Apple's OpenGL through
++ * CGL contexts that share objects with one readback context; with gl=es, ANGLE's EGL (on Metal) is used
++ * through the normal EGL path. Either way each finished frame is read back into the console surface, so
++ * 2D listeners such as VNC show the 3D output.
++ */
++#include <OpenGL/OpenGL.h>
++#include "system/system.h"
++
++static bool darwin_cgl;
++static CGLContextObj darwin_main_ctx;
++static CGLPixelFormatObj darwin_pixfmt;
++
++static CGLPixelFormatObj darwin_choose_pixel_format(void)
++{
++    CGLPixelFormatAttribute attribs[] = {
++        kCGLPFAOpenGLProfile, (CGLPixelFormatAttribute)kCGLOGLPVersion_GL4_Core,
++        kCGLPFAAccelerated,
++        kCGLPFAAllowOfflineRenderers,
++        0
++    };
++    CGLPixelFormatObj pix = NULL;
++    GLint npix = 0;
++
++    if (CGLChoosePixelFormat(attribs, &pix, &npix) != kCGLNoError || !pix) {
++        return NULL;
++    }
++    return pix;
++}
++
++/* GL work for the display runs in the readback context; the previous context is given back after. */
++#define DARWIN_ENTER()                                                        \
++    CGLContextObj darwin_prev = darwin_cgl ? CGLGetCurrentContext() : NULL;   \
++    if (darwin_cgl) {                                                         \
++        CGLSetCurrentContext(darwin_main_ctx);                                \
++    }
++#define DARWIN_LEAVE()                                                        \
++    if (darwin_cgl) {                                                         \
++        CGLSetCurrentContext(darwin_prev);                                    \
++    }
++#else
++#define DARWIN_ENTER()
++#define DARWIN_LEAVE()
++#endif
++
+ typedef struct egl_dpy {
+     DisplayChangeListener dcl;
+     DisplaySurface *ds;
+@@ -42,17 +88,54 @@
+ static QEMUGLContext egl_create_context(DisplayGLCtx *dgc,
+                                         QEMUGLParams *params)
+ {
++#ifdef CONFIG_DARWIN
++    if (darwin_cgl) {
++        CGLContextObj ctx = NULL;
++
++        if (CGLCreateContext(darwin_pixfmt, darwin_main_ctx, &ctx) != kCGLNoError) {
++            error_report("egl-headless: CGLCreateContext failed");
++            return NULL;
++        }
++        return (QEMUGLContext)ctx;
++    }
++#endif
+     eglMakeCurrent(qemu_egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                    qemu_egl_rn_ctx);
+     return qemu_egl_create_context(dgc, params);
+ }
+ 
++static void egl_destroy_context(DisplayGLCtx *dgc, QEMUGLContext ctx)
++{
++#ifdef CONFIG_DARWIN
++    if (darwin_cgl) {
++        if (CGLGetCurrentContext() == (CGLContextObj)ctx) {
++            CGLSetCurrentContext(NULL);
++        }
++        CGLDestroyContext((CGLContextObj)ctx);
++        return;
++    }
++#endif
++    qemu_egl_destroy_context(dgc, ctx);
++}
++
++static int egl_make_context_current(DisplayGLCtx *dgc, QEMUGLContext ctx)
++{
++#ifdef CONFIG_DARWIN
++    if (darwin_cgl) {
++        return CGLSetCurrentContext((CGLContextObj)ctx) == kCGLNoError ? 0 : -1;
++    }
++#endif
++    return qemu_egl_make_context_current(dgc, ctx);
++}
++
+ static void egl_scanout_disable(DisplayChangeListener *dcl)
+ {
+     egl_dpy *edpy = container_of(dcl, egl_dpy, dcl);
+ 
++    DARWIN_ENTER();
+     egl_fb_destroy(&edpy->guest_fb);
+     egl_fb_destroy(&edpy->blit_fb);
++    DARWIN_LEAVE();
+ }
+ 
+ static void egl_scanout_texture(DisplayChangeListener *dcl,
+@@ -68,6 +151,7 @@
+ 
+     edpy->y_0_top = backing_y_0_top;
+ 
++    DARWIN_ENTER();
+     /* source framebuffer */
+     egl_fb_setup_for_tex(&edpy->guest_fb,
+                          backing_width, backing_height, backing_id, false);
+@@ -78,6 +162,7 @@
+         egl_fb_destroy(&edpy->blit_fb);
+         egl_fb_setup_new_tex(&edpy->blit_fb, backing_width, backing_height);
+     }
++    DARWIN_LEAVE();
+ }
+ 
+ #ifdef CONFIG_GBM
+@@ -150,6 +235,7 @@
+     }
+     assert(surface_format(edpy->ds) == PIXMAN_x8r8g8b8);
+ 
++    DARWIN_ENTER();
+     if (edpy->cursor_fb.texture) {
+         /* have cursor -> render using textures */
+         egl_texture_blit(edpy->gls, &edpy->blit_fb, &edpy->guest_fb,
+@@ -163,6 +249,7 @@
+     }
+ 
+     egl_fb_read(edpy->ds, &edpy->blit_fb);
++    DARWIN_LEAVE();
+     dpy_gfx_update(edpy->dcl.con, x, y, w, h);
+ }
+ 
+@@ -201,8 +288,8 @@
+ static const DisplayGLCtxOps eglctx_ops = {
+     .dpy_gl_ctx_is_compatible_dcl = egl_is_compatible_dcl,
+     .dpy_gl_ctx_create       = egl_create_context,
+-    .dpy_gl_ctx_destroy      = qemu_egl_destroy_context,
+-    .dpy_gl_ctx_make_current = qemu_egl_make_context_current,
++    .dpy_gl_ctx_destroy      = egl_destroy_context,
++    .dpy_gl_ctx_make_current = egl_make_context_current,
+ };
+ 
+ static void early_egl_headless_init(DisplayOptions *opts)
+@@ -213,6 +300,32 @@
+         mode = opts->gl;
+     }
+ 
++#ifdef CONFIG_DARWIN
++    if (mode == DISPLAY_GL_MODE_ES) {
++        /* ANGLE on Metal. */
++        if (qemu_egl_init_dpy_cocoa(DISPLAY_GL_MODE_ES) < 0) {
++            error_report("egl-headless: ANGLE EGL init failed");
++            exit(1);
++        }
++        qemu_egl_rn_ctx = qemu_egl_init_ctx();
++        if (!qemu_egl_rn_ctx) {
++            error_report("egl-headless: ANGLE context failed");
++            exit(1);
++        }
++    } else {
++        /* Apple's OpenGL 4.1 core profile. */
++        darwin_pixfmt = darwin_choose_pixel_format();
++        if (!darwin_pixfmt ||
++            CGLCreateContext(darwin_pixfmt, NULL, &darwin_main_ctx) != kCGLNoError) {
++            error_report("egl-headless: no OpenGL 4.1 core context on this Mac");
++            exit(1);
++        }
++        CGLSetCurrentContext(darwin_main_ctx);
++        darwin_cgl = true;
++    }
++    display_opengl = 1;
++    return;
++#endif
+     egl_init(opts->u.egl_headless.rendernode, mode, &error_fatal);
+ }
+ 
+@@ -233,7 +346,11 @@
+         edpy = g_new0(egl_dpy, 1);
+         edpy->dcl.con = con;
+         edpy->dcl.ops = &egl_ops;
+-        edpy->gls = qemu_gl_init_shader();
++        {
++            DARWIN_ENTER();
++            edpy->gls = qemu_gl_init_shader();
++            DARWIN_LEAVE();
++        }
+         ctx = g_new0(DisplayGLCtx, 1);
+         ctx->ops = &eglctx_ops;
+         qemu_console_set_display_gl_ctx(con, ctx);

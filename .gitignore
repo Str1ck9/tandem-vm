@@ -1,0 +1,19 @@
+.cache/
+.build/
+build/
+target/
+*.xcuserstate
+.DS_Store
+DerivedData/
+*.app/
+.claude/
+.swiftpm/
+*.dmg
+*.iso
+*.qcow2
+*.img
+# Release signing key and local credentials: never commit these
+update-signing.key
+*.p12
+*.pem
+.env

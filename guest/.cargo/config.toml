@@ -1,0 +1,4 @@
+# Static Linux agent, linked with the LLD that ships with Rust (no cross toolchain needed).
+[target.aarch64-unknown-linux-musl]
+linker = "rust-lld"
+rustflags = ["-C", "link-self-contained=yes"]

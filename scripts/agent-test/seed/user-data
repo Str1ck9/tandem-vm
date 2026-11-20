@@ -1,0 +1,6 @@
+#cloud-config
+# Test guest for `vmctl agent-test`: wrong clock, agent started, killed after 15 s, started again.
+runcmd:
+  - [sh, -c, "mkdir -p /mnt/seed && mount -o ro $(findfs LABEL=cidata) /mnt/seed && cp /mnt/seed/tandem-agent /usr/local/bin/tandem-agent && chmod 755 /usr/local/bin/tandem-agent && umount /mnt/seed"]
+  - [sh, -c, "date -s '2020-01-01 00:00:00' >/dev/null"]
+  - [sh, -c, "(/usr/local/bin/tandem-agent >/var/log/tandem-agent.log 2>&1 & A=$!; sleep 15; kill -9 $A; exec /usr/local/bin/tandem-agent >>/var/log/tandem-agent.log 2>&1) >/dev/null 2>&1 &"]

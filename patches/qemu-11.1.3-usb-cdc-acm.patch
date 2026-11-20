@@ -1,0 +1,628 @@
+diff --color -ruN a/hw/usb/dev-cdc-acm.c b/hw/usb/dev-cdc-acm.c
+--- a/hw/usb/dev-cdc-acm.c	1969-12-31 19:00:00
++++ b/hw/usb/dev-cdc-acm.c	2026-11-15 17:39:32
+@@ -0,0 +1,612 @@
++/*
++ * USB CDC ACM serial device ("usb-cdc-acm")
++ *
++ * A USB modem-class serial port backed by a QEMU chardev. Unlike the FTDI
++ * "usb-serial" it needs no vendor driver: Windows (usbser.sys, also on ARM64),
++ * Linux (cdc_acm) and macOS bind to it with their inbox drivers. Its vendor
++ * and product ids, strings and serial number are properties, so a host serial
++ * device can be presented to the guest under its own identity.
++ *
++ * Line coding (speed, data bits, parity, stop bits), DTR/RTS and BREAK
++ * requests from the guest are passed to the chardev; a serial chardev on the
++ * host applies them to the real port. Modem status from the chardev is
++ * reported to the guest with SERIAL_STATE notifications.
++ *
++ * Copyright (c) 2026 Tandem contributors.
++ *
++ * This work is licensed under the terms of the GNU GPL, version 2 or later.
++ * See the COPYING file in the top-level directory.
++ */
++
++#include "qemu/osdep.h"
++#include "qapi/error.h"
++#include "qemu/error-report.h"
++#include "qemu/module.h"
++#include "qemu/timer.h"
++#include "qemu/bswap.h"
++#include "hw/core/qdev-properties.h"
++#include "hw/core/qdev-properties-system.h"
++#include "hw/usb/usb.h"
++#include "migration/vmstate.h"
++#include "desc.h"
++#include "chardev/char-serial.h"
++#include "chardev/char-fe.h"
++#include "qom/object.h"
++
++#define RECV_BUF 4096
++
++/* Endpoints */
++#define EP_DATA_IN      1
++#define EP_DATA_OUT     2
++#define EP_NOTIFY       3
++#define DATA_PACKET     64
++
++/* CDC PSTN class requests */
++#define CDC_SEND_BREAK              0x23
++#define CDC_SET_LINE_CODING         0x20
++#define CDC_GET_LINE_CODING         0x21
++#define CDC_SET_CONTROL_LINE_STATE  0x22
++
++#define CDC_CTRL_DTR    0x01
++#define CDC_CTRL_RTS    0x02
++
++/* SERIAL_STATE notification bits */
++#define CDC_SERIAL_STATE        0x20
++#define CDC_STATE_DCD           0x01
++#define CDC_STATE_DSR           0x02
++#define CDC_STATE_BREAK         0x04
++#define CDC_STATE_RI            0x08
++
++/* How often the host port's modem lines are checked while the guest has it open. */
++#define MODEM_POLL_MS 100
++
++struct USBCdcAcmState {
++    USBDevice dev;
++    CharFrontend cs;
++
++    USBEndpoint *data_in;
++    USBEndpoint *notify;
++
++    uint8_t recv_buf[RECV_BUF];
++    uint32_t recv_ptr;
++    uint32_t recv_used;
++
++    uint8_t line_coding[7];
++    uint16_t control_lines;
++    uint16_t serial_state;
++    bool serial_state_dirty;
++    bool break_pending;
++    QEMUTimer *modem_timer;
++
++    QEMUSerialSetParams params;
++
++    /* identity */
++    uint16_t vendorid;
++    uint16_t productid;
++    uint16_t bcddevice;
++    char *manufacturer;
++    char *product;
++    bool always_plugged;
++
++    USBDesc desc;
++};
++
++#define TYPE_USB_CDC_ACM "usb-cdc-acm"
++OBJECT_DECLARE_SIMPLE_TYPE(USBCdcAcmState, USB_CDC_ACM)
++
++enum {
++    STR_MANUFACTURER = 1,
++    STR_PRODUCT,
++    STR_SERIALNUMBER,
++    STR_COMM,
++    STR_DATA,
++};
++
++static const USBDescStrings desc_strings = {
++    [STR_MANUFACTURER] = "QEMU",
++    [STR_PRODUCT]      = "QEMU USB CDC ACM",
++    [STR_SERIALNUMBER] = "1",
++    [STR_COMM]         = "CDC ACM control",
++    [STR_DATA]         = "CDC ACM data",
++};
++
++static const uint8_t cdc_header[]   = { 5, 0x24, 0x00, 0x10, 0x01 };    /* CDC 1.10 */
++static const uint8_t cdc_call_mgmt[] = { 5, 0x24, 0x01, 0x00, 0x01 };   /* data on interface 1 */
++static const uint8_t cdc_acm[]      = { 4, 0x24, 0x02, 0x06 };          /* line coding, break */
++static const uint8_t cdc_union[]    = { 5, 0x24, 0x06, 0x00, 0x01 };    /* master 0, slave 1 */
++
++static const USBDescIface desc_ifaces[] = {
++    {
++        .bInterfaceNumber   = 0,
++        .bNumEndpoints      = 1,
++        .bInterfaceClass    = USB_CLASS_COMM,
++        .bInterfaceSubClass = 0x02,             /* abstract control model */
++        .bInterfaceProtocol = 0x01,             /* AT commands (V.250) */
++        .iInterface         = STR_COMM,
++        .ndesc              = 4,
++        .descs = (USBDescOther[]) {
++            { .data = cdc_header },
++            { .data = cdc_call_mgmt },
++            { .data = cdc_acm },
++            { .data = cdc_union },
++        },
++        .eps = (USBDescEndpoint[]) {
++            {
++                .bEndpointAddress = USB_DIR_IN | EP_NOTIFY,
++                .bmAttributes     = USB_ENDPOINT_XFER_INT,
++                .wMaxPacketSize   = 16,
++                .bInterval        = 16,
++            },
++        },
++    }, {
++        .bInterfaceNumber   = 1,
++        .bNumEndpoints      = 2,
++        .bInterfaceClass    = USB_CLASS_CDC_DATA,
++        .iInterface         = STR_DATA,
++        .eps = (USBDescEndpoint[]) {
++            {
++                .bEndpointAddress = USB_DIR_IN | EP_DATA_IN,
++                .bmAttributes     = USB_ENDPOINT_XFER_BULK,
++                .wMaxPacketSize   = DATA_PACKET,
++            }, {
++                .bEndpointAddress = USB_DIR_OUT | EP_DATA_OUT,
++                .bmAttributes     = USB_ENDPOINT_XFER_BULK,
++                .wMaxPacketSize   = DATA_PACKET,
++            },
++        },
++    },
++};
++
++/*
++ * One function grouped by an interface association descriptor: the layout
++ * Windows' usbccgp splits so that usbser.sys binds to the function without an
++ * INF of its own (compatible id USB\Class_02&SubClass_02&Prot_01).
++ */
++static const USBDescIfaceAssoc desc_iad = {
++    .bFirstInterface   = 0,
++    .bInterfaceCount   = 2,
++    .bFunctionClass    = USB_CLASS_COMM,
++    .bFunctionSubClass = 0x02,
++    .bFunctionProtocol = 0x01,
++    .iFunction         = STR_PRODUCT,
++    .nif               = ARRAY_SIZE(desc_ifaces),
++    .ifs               = desc_ifaces,
++};
++
++static const USBDescDevice desc_device = {
++    .bcdUSB             = 0x0200,
++    .bDeviceClass       = 0xef,     /* miscellaneous */
++    .bDeviceSubClass    = 0x02,     /* common class */
++    .bDeviceProtocol    = 0x01,     /* interface association */
++    .bMaxPacketSize0    = 64,
++    .bNumConfigurations = 1,
++    .confs = (USBDescConfig[]) {
++        {
++            .bNumInterfaces      = 2,
++            .bConfigurationValue = 1,
++            .bmAttributes        = USB_CFG_ATT_ONE,
++            .bMaxPower           = 50,
++            .nif_groups          = 1,
++            .if_groups           = &desc_iad,
++        },
++    },
++};
++
++static const USBDesc desc_template = {
++    .id = {
++        .idVendor       = 0x46f4,   /* QEMU */
++        .idProduct      = 0x0010,
++        .bcdDevice      = 0x0100,
++        .iManufacturer  = STR_MANUFACTURER,
++        .iProduct       = STR_PRODUCT,
++        .iSerialNumber  = STR_SERIALNUMBER,
++    },
++    .full = &desc_device,
++    .str  = desc_strings,
++};
++
++/* --- host port ------------------------------------------------------------ */
++
++static void cdc_acm_apply_line_coding(USBCdcAcmState *s)
++{
++    static const char parities[] = { 'N', 'O', 'E', 'M', 'S' };
++    uint32_t rate = ldl_le_p(s->line_coding);
++    uint8_t stop = s->line_coding[4], parity = s->line_coding[5], bits = s->line_coding[6];
++
++    s->params.speed = rate ? rate : 9600;
++    s->params.parity = parity < ARRAY_SIZE(parities) ? parities[parity] : 'N';
++    s->params.data_bits = (bits >= 5 && bits <= 8) ? bits : 8;
++    s->params.stop_bits = stop == 2 ? 2 : 1;            /* 1.5 is treated as 1 */
++    qemu_chr_fe_ioctl(&s->cs, CHR_IOCTL_SERIAL_SET_PARAMS, &s->params);
++}
++
++static void cdc_acm_apply_control_lines(USBCdcAcmState *s)
++{
++    int flags = 0;
++
++    if (qemu_chr_fe_ioctl(&s->cs, CHR_IOCTL_SERIAL_GET_TIOCM, &flags) == -ENOTSUP) {
++        return;
++    }
++    flags &= ~(CHR_TIOCM_DTR | CHR_TIOCM_RTS);
++    if (s->control_lines & CDC_CTRL_DTR) {
++        flags |= CHR_TIOCM_DTR;
++    }
++    if (s->control_lines & CDC_CTRL_RTS) {
++        flags |= CHR_TIOCM_RTS;
++    }
++    qemu_chr_fe_ioctl(&s->cs, CHR_IOCTL_SERIAL_SET_TIOCM, &flags);
++}
++
++/* The modem lines as the guest should see them; a port without them reads as connected. */
++static uint16_t cdc_acm_modem_state(USBCdcAcmState *s)
++{
++    int flags = 0;
++    uint16_t state = 0;
++
++    if (qemu_chr_fe_ioctl(&s->cs, CHR_IOCTL_SERIAL_GET_TIOCM, &flags) == -ENOTSUP) {
++        return CDC_STATE_DCD | CDC_STATE_DSR;
++    }
++    if (flags & CHR_TIOCM_CAR) {
++        state |= CDC_STATE_DCD;
++    }
++    if (flags & CHR_TIOCM_DSR) {
++        state |= CDC_STATE_DSR;
++    }
++    if (flags & CHR_TIOCM_RI) {
++        state |= CDC_STATE_RI;
++    }
++    /*
++     * USB CDC devices (a Flipper Zero, most microcontroller boards) show no DCD
++     * or DSR on the Mac's side. Report both, as such devices do themselves, so
++     * guest programs that wait for them do not hang.
++     */
++    if (!(state & (CDC_STATE_DCD | CDC_STATE_DSR))) {
++        state |= CDC_STATE_DCD | CDC_STATE_DSR;
++    }
++    return state;
++}
++
++static void cdc_acm_update_serial_state(USBCdcAcmState *s)
++{
++    uint16_t state = cdc_acm_modem_state(s);
++
++    if (s->break_pending) {
++        state |= CDC_STATE_BREAK;
++    }
++    if (state != s->serial_state) {
++        s->serial_state = state;
++        s->serial_state_dirty = true;
++        usb_wakeup(s->notify, 0);
++    }
++}
++
++static void cdc_acm_modem_poll(void *opaque)
++{
++    USBCdcAcmState *s = opaque;
++
++    cdc_acm_update_serial_state(s);
++    if (s->control_lines & CDC_CTRL_DTR) {
++        timer_mod(s->modem_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + MODEM_POLL_MS);
++    }
++}
++
++/* --- USB device ------------------------------------------------------------ */
++
++static void cdc_acm_reset(USBCdcAcmState *s)
++{
++    /* 115200 8N1 */
++    static const uint8_t default_coding[7] = { 0x00, 0xc2, 0x01, 0x00, 0, 0, 8 };
++
++    memcpy(s->line_coding, default_coding, sizeof(default_coding));
++    s->recv_ptr = 0;
++    s->recv_used = 0;
++    s->control_lines = 0;
++    s->serial_state = 0;
++    s->serial_state_dirty = false;
++    s->break_pending = false;
++    timer_del(s->modem_timer);
++    /* The host device sees DTR only once the guest opens the port, as with a real cable. */
++    cdc_acm_apply_control_lines(s);
++}
++
++static void cdc_acm_handle_reset(USBDevice *dev)
++{
++    cdc_acm_reset(USB_CDC_ACM(dev));
++}
++
++static void cdc_acm_handle_control(USBDevice *dev, USBPacket *p, int request,
++                                   int value, int index, int length, uint8_t *data)
++{
++    USBCdcAcmState *s = USB_CDC_ACM(dev);
++    int ret;
++
++    ret = usb_desc_handle_control(dev, p, request, value, index, length, data);
++    if (ret >= 0) {
++        return;
++    }
++
++    switch (request) {
++    case EndpointOutRequest | USB_REQ_CLEAR_FEATURE:
++        break;
++    case ClassInterfaceOutRequest | CDC_SET_LINE_CODING:
++        if (length < (int)sizeof(s->line_coding)) {
++            goto fail;
++        }
++        memcpy(s->line_coding, data, sizeof(s->line_coding));
++        cdc_acm_apply_line_coding(s);
++        break;
++    case ClassInterfaceRequest | CDC_GET_LINE_CODING:
++        ret = MIN(length, (int)sizeof(s->line_coding));
++        memcpy(data, s->line_coding, ret);
++        p->actual_length = ret;
++        break;
++    case ClassInterfaceOutRequest | CDC_SET_CONTROL_LINE_STATE: {
++        bool was_open = s->control_lines & CDC_CTRL_DTR;
++
++        s->control_lines = value & (CDC_CTRL_DTR | CDC_CTRL_RTS);
++        cdc_acm_apply_control_lines(s);
++        if (s->control_lines & CDC_CTRL_DTR) {
++            if (!was_open) {
++                /* Tell the guest the line is up, then keep watching it. */
++                s->serial_state = 0;
++                cdc_acm_modem_poll(s);
++            }
++        } else {
++            timer_del(s->modem_timer);
++            if (was_open) {
++                /* Closed by the guest: what arrived for the last session is not for the next. */
++                s->recv_ptr = 0;
++                s->recv_used = 0;
++            }
++        }
++        break;
++    }
++    case ClassInterfaceOutRequest | CDC_SEND_BREAK: {
++        int on = value != 0;
++
++        qemu_chr_fe_ioctl(&s->cs, CHR_IOCTL_SERIAL_SET_BREAK, &on);
++        if (on && value != 0xffff) {
++            on = 0;
++            qemu_chr_fe_ioctl(&s->cs, CHR_IOCTL_SERIAL_SET_BREAK, &on);
++        }
++        break;
++    }
++    default:
++    fail:
++        p->status = USB_RET_STALL;
++        break;
++    }
++}
++
++static void cdc_acm_data_in(USBCdcAcmState *s, USBPacket *p)
++{
++    size_t room = p->iov.size;
++
++    if (!s->recv_used) {
++        p->status = USB_RET_NAK;
++        return;
++    }
++    while (s->recv_used && room) {
++        uint32_t len = MIN(room, s->recv_used);
++        uint32_t first = MIN(len, RECV_BUF - s->recv_ptr);
++
++        usb_packet_copy(p, s->recv_buf + s->recv_ptr, first);
++        if (len > first) {
++            usb_packet_copy(p, s->recv_buf, len - first);
++        }
++        s->recv_used -= len;
++        s->recv_ptr = (s->recv_ptr + len) % RECV_BUF;
++        room -= len;
++    }
++    /* Room again: let the chardev deliver what it was holding back. */
++    qemu_chr_fe_accept_input(&s->cs);
++}
++
++static void cdc_acm_notify(USBCdcAcmState *s, USBPacket *p)
++{
++    uint8_t buf[10];
++
++    if (!s->serial_state_dirty || p->iov.size < sizeof(buf)) {
++        p->status = USB_RET_NAK;
++        return;
++    }
++    buf[0] = 0xa1;                      /* class, interface, device to host */
++    buf[1] = CDC_SERIAL_STATE;
++    stw_le_p(buf + 2, 0);               /* wValue */
++    stw_le_p(buf + 4, 0);               /* wIndex: the control interface */
++    stw_le_p(buf + 6, 2);               /* wLength */
++    stw_le_p(buf + 8, s->serial_state);
++    usb_packet_copy(p, buf, sizeof(buf));
++    s->serial_state_dirty = false;
++    if (s->break_pending) {
++        /* A break is an event: report it once, then report the line without it. */
++        s->break_pending = false;
++        s->serial_state &= ~CDC_STATE_BREAK;
++        s->serial_state_dirty = true;
++    }
++}
++
++static void cdc_acm_handle_data(USBDevice *dev, USBPacket *p)
++{
++    USBCdcAcmState *s = USB_CDC_ACM(dev);
++    int i;
++
++    switch (p->pid) {
++    case USB_TOKEN_OUT:
++        if (p->ep->nr != EP_DATA_OUT) {
++            goto fail;
++        }
++        for (i = 0; i < p->iov.niov; i++) {
++            qemu_chr_fe_write_all(&s->cs, p->iov.iov[i].iov_base, p->iov.iov[i].iov_len);
++        }
++        p->actual_length = p->iov.size;
++        break;
++    case USB_TOKEN_IN:
++        if (p->ep->nr == EP_DATA_IN) {
++            cdc_acm_data_in(s, p);
++        } else if (p->ep->nr == EP_NOTIFY) {
++            cdc_acm_notify(s, p);
++        } else {
++            goto fail;
++        }
++        break;
++    default:
++    fail:
++        p->status = USB_RET_STALL;
++        break;
++    }
++}
++
++/* --- chardev ----------------------------------------------------------------- */
++
++static int cdc_acm_can_read(void *opaque)
++{
++    USBCdcAcmState *s = opaque;
++
++    if (!s->dev.attached) {
++        return 0;
++    }
++    return RECV_BUF - s->recv_used;
++}
++
++static void cdc_acm_read(void *opaque, const uint8_t *buf, int size)
++{
++    USBCdcAcmState *s = opaque;
++    uint32_t start, first;
++
++    size = MIN(size, (int)(RECV_BUF - s->recv_used));
++    start = (s->recv_ptr + s->recv_used) % RECV_BUF;
++    first = MIN((uint32_t)size, RECV_BUF - start);
++    memcpy(s->recv_buf + start, buf, first);
++    if ((uint32_t)size > first) {
++        memcpy(s->recv_buf, buf + first, size - first);
++    }
++    s->recv_used += size;
++    usb_wakeup(s->data_in, 0);
++}
++
++static void cdc_acm_event(void *opaque, QEMUChrEvent event)
++{
++    USBCdcAcmState *s = opaque;
++
++    switch (event) {
++    case CHR_EVENT_BREAK:
++        s->break_pending = true;
++        cdc_acm_update_serial_state(s);
++        break;
++    case CHR_EVENT_OPENED:
++        if (!s->always_plugged && !s->dev.attached) {
++            usb_device_attach(&s->dev, &error_abort);
++        }
++        break;
++    case CHR_EVENT_CLOSED:
++        if (!s->always_plugged && s->dev.attached) {
++            usb_device_detach(&s->dev);
++        }
++        break;
++    case CHR_EVENT_MUX_IN:
++    case CHR_EVENT_MUX_OUT:
++        break;
++    }
++}
++
++static void cdc_acm_realize(USBDevice *dev, Error **errp)
++{
++    USBCdcAcmState *s = USB_CDC_ACM(dev);
++    Error *local_err = NULL;
++
++    if (!qemu_chr_fe_backend_connected(&s->cs)) {
++        error_setg(errp, "Property chardev is required");
++        return;
++    }
++
++    s->desc = desc_template;
++    s->desc.id.idVendor = s->vendorid;
++    s->desc.id.idProduct = s->productid;
++    s->desc.id.bcdDevice = s->bcddevice;
++    dev->usb_desc = &s->desc;
++    if (s->manufacturer) {
++        usb_desc_set_string(dev, STR_MANUFACTURER, s->manufacturer);
++    }
++    if (s->product) {
++        usb_desc_set_string(dev, STR_PRODUCT, s->product);
++    }
++    usb_desc_create_serial(dev);
++    usb_desc_init(dev);
++    dev->auto_attach = 0;
++
++    usb_check_attach(dev, &local_err);
++    if (local_err) {
++        error_propagate(errp, local_err);
++        return;
++    }
++
++    s->modem_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, cdc_acm_modem_poll, s);
++    qemu_chr_fe_set_handlers(&s->cs, cdc_acm_can_read, cdc_acm_read,
++                             cdc_acm_event, NULL, s, NULL, true);
++    cdc_acm_reset(s);
++    cdc_acm_apply_line_coding(s);
++
++    if ((s->always_plugged || qemu_chr_fe_backend_open(&s->cs)) && !dev->attached) {
++        usb_device_attach(dev, &error_abort);
++    }
++    s->data_in = usb_ep_get(dev, USB_TOKEN_IN, EP_DATA_IN);
++    s->notify = usb_ep_get(dev, USB_TOKEN_IN, EP_NOTIFY);
++}
++
++static void cdc_acm_unrealize(USBDevice *dev)
++{
++    USBCdcAcmState *s = USB_CDC_ACM(dev);
++
++    if (s->modem_timer) {
++        timer_free(s->modem_timer);
++        s->modem_timer = NULL;
++    }
++}
++
++static const VMStateDescription vmstate_usb_cdc_acm = {
++    .name = "usb-cdc-acm",
++    .unmigratable = 1,
++};
++
++static const Property cdc_acm_properties[] = {
++    DEFINE_PROP_CHR("chardev", USBCdcAcmState, cs),
++    DEFINE_PROP_UINT16("vendorid", USBCdcAcmState, vendorid, 0x46f4),
++    DEFINE_PROP_UINT16("productid", USBCdcAcmState, productid, 0x0010),
++    DEFINE_PROP_UINT16("bcddevice", USBCdcAcmState, bcddevice, 0x0100),
++    DEFINE_PROP_STRING("manufacturer", USBCdcAcmState, manufacturer),
++    DEFINE_PROP_STRING("product", USBCdcAcmState, product),
++    DEFINE_PROP_BOOL("always-plugged", USBCdcAcmState, always_plugged, false),
++};
++
++static void cdc_acm_class_init(ObjectClass *klass, const void *data)
++{
++    DeviceClass *dc = DEVICE_CLASS(klass);
++    USBDeviceClass *uc = USB_DEVICE_CLASS(klass);
++
++    uc->product_desc   = "QEMU USB CDC ACM serial";
++    uc->usb_desc       = &desc_template;
++    uc->realize        = cdc_acm_realize;
++    uc->unrealize      = cdc_acm_unrealize;
++    uc->handle_reset   = cdc_acm_handle_reset;
++    uc->handle_control = cdc_acm_handle_control;
++    uc->handle_data    = cdc_acm_handle_data;
++    dc->vmsd = &vmstate_usb_cdc_acm;
++    dc->desc = "USB CDC ACM serial port backed by a chardev";
++    device_class_set_props(dc, cdc_acm_properties);
++    set_bit(DEVICE_CATEGORY_INPUT, dc->categories);
++}
++
++static const TypeInfo cdc_acm_info = {
++    .name          = TYPE_USB_CDC_ACM,
++    .parent        = TYPE_USB_DEVICE,
++    .instance_size = sizeof(USBCdcAcmState),
++    .class_init    = cdc_acm_class_init,
++};
++
++static void cdc_acm_register_types(void)
++{
++    type_register_static(&cdc_acm_info);
++}
++
++type_init(cdc_acm_register_types)
+diff --color -ruN a/hw/usb/meson.build b/hw/usb/meson.build
+--- a/hw/usb/meson.build	2026-11-15 17:39:32
++++ b/hw/usb/meson.build	2026-11-15 17:39:32
+@@ -42,7 +42,7 @@
+ system_ss.add(when: 'CONFIG_USB_STORAGE_CLASSIC', if_true: files('dev-storage-classic.c'))
+ system_ss.add(when: 'CONFIG_USB_STORAGE_UAS', if_true: files('dev-uas.c'))
+ system_ss.add(when: 'CONFIG_USB_AUDIO', if_true: files('dev-audio.c'))
+-system_ss.add(when: 'CONFIG_USB_SERIAL', if_true: files('dev-serial.c'))
++system_ss.add(when: 'CONFIG_USB_SERIAL', if_true: files('dev-serial.c', 'dev-cdc-acm.c'))
+ system_ss.add(when: 'CONFIG_USB_NETWORK', if_true: files('dev-network.c'))
+ if host_os != 'windows'
+   system_ss.add(when: 'CONFIG_USB_STORAGE_MTP', if_true: files('dev-mtp.c'))

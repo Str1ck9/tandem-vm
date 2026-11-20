@@ -1,0 +1,154 @@
+diff -ruN a/hw/display/virtio-gpu-virgl.c b/hw/display/virtio-gpu-virgl.c
+--- a/hw/display/virtio-gpu-virgl.c	2026-11-15 21:02:07
++++ b/hw/display/virtio-gpu-virgl.c	2026-11-15 21:36:23
+@@ -55,6 +55,64 @@
+     bool map_blocked;
+ };
+ 
++
++#ifdef CONFIG_DARWIN
++/*
++ * macOS: a blob scanout that virglrenderer cannot hand over as a Metal texture (a Windows viogpu3d
++ * desktop rendered by the render server, whose resources live in shared memory) is shown as an
++ * ordinary 2D surface over that memory. The shared-memory fd is mapped read-only once per resource
++ * and unmapped when the guest releases the resource; resource flushes become 2D updates, so every
++ * 2D listener (VNC, and through it Tandem's window) sees the guest's frames.
++ */
++#include <sys/mman.h>
++
++typedef struct ShmScanoutMap {
++    void *ptr;
++    size_t size;
++} ShmScanoutMap;
++
++static GHashTable *shm_scanout_maps;          /* resource id -> ShmScanoutMap */
++static bool shm_scanout_active[VIRTIO_GPU_MAX_SCANOUTS];
++
++static void shm_scanout_map_free(gpointer data)
++{
++    ShmScanoutMap *m = data;
++
++    munmap(m->ptr, m->size);
++    g_free(m);
++}
++
++static void *shm_scanout_map(uint32_t resource_id, int fd, size_t size)
++{
++    ShmScanoutMap *m;
++    void *ptr;
++
++    if (!shm_scanout_maps) {
++        shm_scanout_maps = g_hash_table_new_full(NULL, NULL, NULL, shm_scanout_map_free);
++    }
++    m = g_hash_table_lookup(shm_scanout_maps, GUINT_TO_POINTER(resource_id));
++    if (m && m->size >= size) {
++        return m->ptr;
++    }
++    ptr = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
++    if (ptr == MAP_FAILED) {
++        return NULL;
++    }
++    m = g_new0(ShmScanoutMap, 1);
++    m->ptr = ptr;
++    m->size = size;
++    g_hash_table_replace(shm_scanout_maps, GUINT_TO_POINTER(resource_id), m);
++    return ptr;
++}
++
++static void shm_scanout_unmap(uint32_t resource_id)
++{
++    if (shm_scanout_maps) {
++        g_hash_table_remove(shm_scanout_maps, GUINT_TO_POINTER(resource_id));
++    }
++}
++#endif
++
+ static struct virtio_gpu_virgl_resource *
+ virtio_gpu_virgl_find_resource(VirtIOGPU *g, uint32_t resource_id)
+ {
+@@ -529,6 +587,16 @@
+         cmd->error = VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID;
+         return;
+     }
++#ifdef CONFIG_DARWIN
++    for (int i = 0; i < g->parent_obj.conf.max_outputs; i++) {
++        if (shm_scanout_active[i] && g->parent_obj.scanout[i].resource_id == unref.resource_id) {
++            /* The surface points into this memory: give the console its own copy first. */
++            dpy_gfx_replace_surface(g->parent_obj.scanout[i].con, NULL);
++            shm_scanout_active[i] = false;
++        }
++    }
++    shm_scanout_unmap(unref.resource_id);
++#endif
+ 
+ #if VIRGL_VERSION_MAJOR >= 1
+     if (res->unref_cmd) {
+@@ -610,6 +678,12 @@
+         return;
+     }
+ 
++#ifdef CONFIG_DARWIN
++    if (shm_scanout_active[idx]) {
++        dpy_gfx_update(g->parent_obj.scanout[idx].con, x, y, width, height);
++        return;
++    }
++#endif
+     dpy_gl_update(g->parent_obj.scanout[idx].con, x, y, width, height);
+ }
+ 
+@@ -648,6 +722,11 @@
+         return;
+     }
+ 
++#ifdef CONFIG_DARWIN
++    if (ss.scanout_id < VIRTIO_GPU_MAX_SCANOUTS) {
++        shm_scanout_active[ss.scanout_id] = false;
++    }
++#endif
+     if (ss.resource_id && ss.r.width && ss.r.height) {
+         struct virgl_renderer_resource_info info;
+         ScanoutTextureNative native = NO_NATIVE_TEXTURE;
+@@ -1198,6 +1277,9 @@
+     }
+ 
+     if (ss.resource_id == 0) {
++#ifdef CONFIG_DARWIN
++        shm_scanout_active[ss.scanout_id] = false;
++#endif
+         virtio_gpu_disable_scanout(g, ss.scanout_id);
+         return;
+     }
+@@ -1245,6 +1327,33 @@
+         cmd->error = VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+         return;
+     }
++
++#ifdef CONFIG_DARWIN
++    {
++        struct virtio_gpu_scanout *scanout = &g->parent_obj.scanout[ss.scanout_id];
++        uint8_t *base = shm_scanout_map(ss.resource_id, res->base.dmabuf_fd, res->base.blob_size);
++
++        if (base) {
++            uint8_t *data = base + fb.offset + (size_t)ss.r.y * fb.stride + (size_t)ss.r.x * fb.bytes_pp;
++            DisplaySurface *ds = qemu_create_displaysurface_from(ss.r.width, ss.r.height,
++                                                                 fb.format, fb.stride, data);
++
++            g->parent_obj.enable = 1;
++            shm_scanout_active[ss.scanout_id] = true;
++            dpy_gfx_replace_surface(scanout->con, ds);
++            scanout->resource_id = ss.resource_id;
++            scanout->x = ss.r.x;
++            scanout->y = ss.r.y;
++            scanout->width = ss.r.width;
++            scanout->height = ss.r.height;
++            scanout->fb = fb;
++            dpy_gfx_update(scanout->con, 0, 0, ss.r.width, ss.r.height);
++            return;
++        }
++        qemu_log_mask(LOG_GUEST_ERROR, "%s: cannot map the scanout of resource %d\n",
++                      __func__, ss.resource_id);
++    }
++#endif
+ 
+     g->parent_obj.enable = 1;
+     if (virtio_gpu_update_dmabuf(g, ss.scanout_id, &res->base, &fb, &ss.r)) {

@@ -1,0 +1,281 @@
+[
+ {
+  "name": "empty request",
+  "frame": {
+   "requestId": 1,
+   "kind": 1,
+   "opcode": 256,
+   "status": 4294967295,
+   "inline": "",
+   "buffers": []
+  },
+  "hex": "424c4e4b24000000010000000000000001000001ffffffff0000000000000000044f1b85"
+ },
+ {
+  "name": "hello request",
+  "frame": {
+   "requestId": 2,
+   "kind": 1,
+   "opcode": 1,
+   "status": 4294967295,
+   "inline": "010000000100000007000000",
+   "buffers": [
+    {
+     "flags": 1,
+     "length": 5,
+     "data": "302e312e30"
+    }
+   ]
+  },
+  "hex": "424c4e4b41000000020000000000000001000100ffffffff0c00000001000000010000000100000007000000000000000500000001000000302e312e308779b560"
+ },
+ {
+  "name": "hello reply",
+  "frame": {
+   "requestId": 2,
+   "kind": 2,
+   "opcode": 1,
+   "status": 0,
+   "inline": "0100000000000000",
+   "buffers": [
+    {
+     "flags": 1,
+     "length": 5
+    }
+   ]
+  },
+  "hex": "424c4e4b3400000002000000000000000200010000000000080000000100000001000000000000000500000001000000315733d7"
+ },
+ {
+  "name": "inline needing padding",
+  "frame": {
+   "requestId": 3,
+   "kind": 1,
+   "opcode": 4,
+   "status": 4294967295,
+   "inline": "02000000",
+   "buffers": [
+    {
+     "flags": 1,
+     "length": 9,
+     "data": "77c3a4726e20e29aa0"
+    }
+   ]
+  },
+  "hex": "424c4e4b3d000000030000000000000001000400ffffffff04000000010000000200000000000000090000000100000077c3a4726e20e29aa0d9a61dc3"
+ },
+ {
+  "name": "wait_event request offers capacity",
+  "frame": {
+   "requestId": 4,
+   "kind": 1,
+   "opcode": 2,
+   "status": 4294967295,
+   "inline": "",
+   "buffers": [
+    {
+     "flags": 2,
+     "length": 65536
+    }
+   ]
+  },
+  "hex": "424c4e4b2c000000040000000000000001000200ffffffff0000000001000000000001000200000048aab6f8"
+ },
+ {
+  "name": "wait_event reply with data",
+  "frame": {
+   "requestId": 4,
+   "kind": 2,
+   "opcode": 2,
+   "status": 0,
+   "inline": "010000000000000000000000",
+   "buffers": [
+    {
+     "flags": 2,
+     "length": 11,
+     "data": "636f706965642074657874"
+    }
+   ]
+  },
+  "hex": "424c4e4b47000000040000000000000002000200000000000c00000001000000010000000000000000000000000000000b00000002000000636f7069656420746578742124617f"
+ },
+ {
+  "name": "echo request in+out",
+  "frame": {
+   "requestId": 1234605616436508552,
+   "kind": 1,
+   "opcode": 5,
+   "status": 4294967295,
+   "inline": "",
+   "buffers": [
+    {
+     "flags": 1,
+     "length": 256,
+     "data": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+    },
+    {
+     "flags": 2,
+     "length": 256
+    }
+   ]
+  },
+  "hex": "424c4e4b34010000887766554433221101000500ffffffff000000000200000000010000010000000001000002000000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff5d198c67"
+ },
+ {
+  "name": "echo reply in+out",
+  "frame": {
+   "requestId": 1234605616436508552,
+   "kind": 2,
+   "opcode": 5,
+   "status": 0,
+   "inline": "",
+   "buffers": [
+    {
+     "flags": 1,
+     "length": 256
+    },
+    {
+     "flags": 2,
+     "length": 256,
+     "data": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+    }
+   ]
+  },
+  "hex": "424c4e4b3401000088776655443322110200050000000000000000000200000000010000010000000001000002000000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff9b42f733"
+ },
+ {
+  "name": "error reply",
+  "frame": {
+   "requestId": 9,
+   "kind": 2,
+   "opcode": 2457,
+   "status": 3758096385,
+   "inline": "",
+   "buffers": []
+  },
+  "hex": "424c4e4b24000000090000000000000002009909010000e00000000000000000ffccf34a"
+ },
+ {
+  "name": "host time reply",
+  "frame": {
+   "requestId": 10,
+   "kind": 2,
+   "opcode": 256,
+   "status": 0,
+   "inline": "d7c7f76a0000000008b4f50cb0b9ffff",
+   "buffers": []
+  },
+  "hex": "424c4e4b340000000a0000000000000002000001000000001000000000000000d7c7f76a0000000008b4f50cb0b9ffffc6f3e4c4"
+ },
+ {
+  "name": "in/out buffer in request",
+  "frame": {
+   "requestId": 11,
+   "kind": 1,
+   "opcode": 1025,
+   "status": 4294967295,
+   "inline": "0102030405060708",
+   "buffers": [
+    {
+     "flags": 3,
+     "length": 9,
+     "data": "626f74682077617973"
+    }
+   ]
+  },
+  "hex": "424c4e4b3d0000000b0000000000000001000104ffffffff080000000100000001020304050607080900000003000000626f74682077617973a60dc0f9"
+ },
+ {
+  "name": "max buffers",
+  "frame": {
+   "requestId": 12,
+   "kind": 1,
+   "opcode": 5,
+   "status": 4294967295,
+   "inline": "",
+   "buffers": [
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "00"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "01"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "02"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "03"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "04"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "05"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "06"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "07"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "08"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "09"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "0a"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "0b"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "0c"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "0d"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "0e"
+    },
+    {
+     "flags": 1,
+     "length": 1,
+     "data": "0f"
+    }
+   ]
+  },
+  "hex": "424c4e4bb40000000c0000000000000001000500ffffffff00000000100000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000000102030405060708090a0b0c0d0e0fbb4af03b"
+ }
+]

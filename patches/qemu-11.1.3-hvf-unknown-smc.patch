@@ -1,0 +1,19 @@
+--- a/target/arm/hvf/hvf.c	2026-11-14 09:25:18
++++ b/target/arm/hvf/hvf.c	2026-11-14 09:25:18
+@@ -2522,8 +2522,15 @@
+                 env->xregs[0] = -1;
+             }
+         } else {
++            /*
++             * Berth: the PSCI conduit is HVC, so no SMC service exists here.
++             * Windows 11 22H2's winload.efi probes SMC function 0xC3000001 and
++             * spins forever if the call faults. Answer every SMC as an unknown
++             * SMCCC function (-1) and step over it instead of injecting UNDEF.
++             */
+             trace_hvf_unknown_smc(env->xregs[0]);
+-            hvf_raise_exception(cpu, EXCP_UDEF, syn_uncategorized(), 1);
++            env->xregs[0] = -1;
++            advance_pc = true;
+         }
+         break;
+     case EC_INSNABORT: {

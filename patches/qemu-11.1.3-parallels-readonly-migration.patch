@@ -1,0 +1,32 @@
+--- a/block/parallels.c	2026-11-14 16:58:44
++++ b/block/parallels.c	2026-11-14 16:58:44
+@@ -1403,14 +1403,22 @@
+     s->bat_dirty_bmap =
+         bitmap_new(DIV_ROUND_UP(s->header_size, s->bat_dirty_block));
+ 
+-    /* Disable migration until bdrv_activate method is added */
+-    error_setg(&s->migration_blocker, "The Parallels format used by node '%s' "
+-               "does not support live migration",
+-               bdrv_get_device_or_node_name(bs));
++    /*
++     * Disable migration until bdrv_activate method is added.
++     * Tandem: an image opened read-only (the backing file of an imported
++     * VM's overlay) has no cached metadata that could go stale, and the
++     * VM's state is only ever saved to a file and loaded again on this
++     * host, so such an image does not block it.
++     */
++    if (flags & BDRV_O_RDWR) {
++        error_setg(&s->migration_blocker, "The Parallels format used by node "
++                   "'%s' does not support live migration",
++                   bdrv_get_device_or_node_name(bs));
+ 
+-    ret = migrate_add_blocker_normal(&s->migration_blocker, errp);
+-    if (ret < 0) {
+-        goto fail;
++        ret = migrate_add_blocker_normal(&s->migration_blocker, errp);
++        if (ret < 0) {
++            goto fail;
++        }
+     }
+     qemu_co_mutex_init(&s->lock);
+ 

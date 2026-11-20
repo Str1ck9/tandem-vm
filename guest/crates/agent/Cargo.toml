@@ -1,0 +1,21 @@
+[package]
+name = "tandem-agent"
+version.workspace = true
+edition.workspace = true
+
+[features]
+# The agent for macOS guests (scripts/build-agent.sh). Without it a Mac build is the development stub,
+# so `cargo test` on the host never touches the Mac's own clipboard, clock or power.
+macos-guest = []
+
+[dependencies]
+link-proto = { path = "../link-proto" }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_System_SystemInformation", "Win32_Graphics_Gdi", "Win32_Graphics_Dwm", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi", "Win32_System_Threading", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_Storage_FileSystem", "Win32_Security", "Win32_UI_Input_KeyboardAndMouse", "Win32_Devices_Display", "Win32_UI_Accessibility", "Win32_System_JobObjects"] }
+
+[dev-dependencies]
+serde_json = "1"

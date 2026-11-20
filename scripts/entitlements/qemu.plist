@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Hypervisor.framework (HVF), which QEMU uses to run ARM guests at native speed. -->
+    <key>com.apple.security.hypervisor</key><true/>
+    <!-- QEMU's code generator, for anything it emulates rather than runs natively. -->
+    <key>com.apple.security.cs.allow-jit</key><true/>
+    <!-- Microphone for VMs (QEMU's Core Audio input), under the hardened runtime. -->
+    <key>com.apple.security.device.audio-input</key><true/>
+</dict>
+</plist>

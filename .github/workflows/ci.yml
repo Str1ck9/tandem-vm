@@ -1,0 +1,24 @@
+# Minimal continuous integration. It has not been run on GitHub yet and may need adjusting (runner image,
+# Xcode version, tests that need a VM or hardware). Do not rely on it as the only check.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift build
+        working-directory: host
+        run: swift build
+      - name: Swift tests
+        working-directory: host
+        # Some tests need local sockets, disk images or a signed app; those skip or may fail on a hosted runner.
+        run: swift test
+      - name: Rust tests
+        working-directory: guest
+        run: cargo test --locked
