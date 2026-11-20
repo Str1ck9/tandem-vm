@@ -1,18 +1,79 @@
-# Tandem
+<h1 align="center">Tandem</h1>
 
-Windows, Linux and macOS virtual machines on Apple silicon Macs, in a native app. Free and open source (Apache-2.0).
+<p align="center">
+  Windows, Linux and macOS virtual machines on Apple silicon Macs, in a native app.<br>
+  Free and open source (Apache-2.0).
+</p>
+
+<p align="center">
+  <a href="https://github.com/Str1ck9/tandem-vm/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Str1ck9/tandem-vm?include_prereleases&label=release"></a>
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
+  <img alt="Platform: macOS 26, Apple silicon" src="https://img.shields.io/badge/platform-macOS%2026%20%C2%B7%20Apple%20silicon-lightgrey">
+  <img alt="Status: early" src="https://img.shields.io/badge/status-early-orange">
+</p>
+
+<p align="center">
+  <img src="screenshots/01-control-center.png" alt="Tandem Control Center with Windows, macOS and Linux virtual machines" width="760">
+</p>
+
+Tandem runs Windows 11 (ARM), Linux and macOS in virtual machines on your Mac. **Create New** downloads Microsoft's, Apple's and the
+distributions' own images and installs them unattended: you pick a system, give it a name and an account, and Tandem does the
+rest. It brings a shared clipboard, shared folders, drag and drop, snapshots, instant clones and a command line with an MCP server.
 
 Tandem is **early software**: the day-to-day flows work for its author, but expect rough edges, and read
 [Status](#status) before trusting it with VMs you cannot recreate. It is not affiliated with Parallels, Apple or Microsoft.
 
-![Tandem Control Center](screenshots/01-control-center.png)
+## Download
+
+**[Download the latest release](https://github.com/Str1ck9/tandem-vm/releases/latest)** (`Tandem-<version>-arm64.dmg`), open the
+image and drag **Tandem** to **Applications**.
+
+Requirements: an Apple silicon Mac and macOS 15 or later (macOS 26 is what Tandem is developed on).
+
+**First open.** Releases are not notarised by Apple yet, so macOS stops the first launch. Either right-click (Control-click)
+**Tandem** in Applications and choose **Open**, then **Open** again; or try to open it once, then go to
+System Settings > Privacy & Security and click **Open Anyway**.
+
+**Verify the download** (the checksum is on the release page):
+
+```sh
+shasum -a 256 ~/Downloads/Tandem-*-arm64.dmg
+```
+
+Prefer to build it yourself? See [Build from source](#build-from-source) and [Packaged app](#packaged-app-self-contained-signed).
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="33%"><a href="screenshots/03-create-new.png"><img src="screenshots/03-create-new.png" alt="Create New"></a><br><sub><b>New VM:</b> install from an image, import, or download a free system</sub></td>
+    <td align="center" width="33%"><a href="screenshots/04-download-windows-11.png"><img src="screenshots/04-download-windows-11.png" alt="Windows 11 download list"></a><br><sub><b>Windows 11</b> from Microsoft: every edition and language for ARM</sub></td>
+    <td align="center" width="33%"><a href="screenshots/05-download-macos.png"><img src="screenshots/05-download-macos.png" alt="macOS download"></a><br><sub><b>macOS</b> from Apple's restore images</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="screenshots/06-download-linux.png"><img src="screenshots/06-download-linux.png" alt="Linux download list"></a><br><sub><b>Linux:</b> Ubuntu (MATE, Xfce or GNOME), Debian, Fedora, Kali</sub></td>
+    <td align="center"><a href="screenshots/01-control-center.png"><img src="screenshots/01-control-center.png" alt="Control Center, light"></a><br><sub><b>Control Center</b> with Windows, macOS and Linux VMs</sub></td>
+    <td align="center"><a href="screenshots/02-control-center-dark.png"><img src="screenshots/02-control-center-dark.png" alt="Control Center, dark"></a><br><sub>The same in dark appearance</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="screenshots/09-config-general.png"><img src="screenshots/09-config-general.png" alt="VM configuration, General"></a><br><sub><b>Configuration:</b> general settings, engine and guest tools</sub></td>
+    <td align="center"><a href="screenshots/11-config-graphics.png"><img src="screenshots/11-config-graphics.png" alt="Graphics configuration"></a><br><sub><b>Graphics:</b> resolution and experimental 3D acceleration</sub></td>
+    <td align="center"><a href="screenshots/13-config-sharing.png"><img src="screenshots/13-config-sharing.png" alt="Sharing configuration"></a><br><sub><b>Sharing:</b> Mac folders, clipboard and restrictions</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="screenshots/14-snapshot-manager.png"><img src="screenshots/14-snapshot-manager.png" alt="Snapshot Manager"></a><br><sub><b>Snapshots:</b> take, revert and delete</sub></td>
+    <td align="center"><a href="screenshots/18-settings-general.png"><img src="screenshots/18-settings-general.png" alt="Settings"></a><br><sub><b>Settings:</b> including automatic updates</sub></td>
+    <td align="center"><a href="screenshots/21-running-ubuntu-mate.png"><img src="screenshots/21-running-ubuntu-mate.png" alt="Ubuntu MATE running in Tandem"></a><br><sub><b>A running</b> Ubuntu MATE VM, signed in automatically</sub></td>
+  </tr>
+</table>
+
+All pictures, with captions and how they were made, are in [`screenshots/`](screenshots/).
 
 ## What it does
 
 - **Install a system without hunting for ISOs.** Create New offers free systems to download and install unattended:
   Windows 11 ARM (Microsoft's own media), macOS (Apple's restore images), Ubuntu (MATE, Xfce or GNOME desktop, or Server),
   Debian, Fedora and Kali. You answer one page (name, account); Tandem does the rest.
-  ![Create New](screenshots/03-create-new.png)
 - **Two engines.** macOS guests run on Apple's Virtualization framework. Windows runs on QEMU with Apple's Hypervisor
   framework; Linux can use either (QEMU for a TPM, USB redirection or 3D).
 - **Guest tools**: shared clipboard, shared Mac folders, drag and drop, resolution that follows the window, clean
@@ -27,8 +88,6 @@ Tandem is **early software**: the day-to-day flows work for its author, but expe
   in VMs, with switches and per-VM permissions that you control.
 - **Import** existing Parallels Desktop VMs that you own.
 - **Self-contained app** with its own QEMU, signed updates, uninstaller and crash-report prompts that send nothing without your say.
-
-More screenshots are in [`screenshots/`](screenshots/).
 
 ## Status
 
@@ -46,8 +105,8 @@ Requirements: Apple silicon Mac, **macOS 15 or later** (macOS 26 recommended; de
 
 ## Install
 
-There are no notarised releases yet. Build from source (below), or, when releases exist, download the `.dmg` from the
-Releases page and drag Tandem to Applications.
+Download the `.dmg` from the [Releases page](https://github.com/Str1ck9/tandem-vm/releases/latest) and drag Tandem to Applications
+(see [Download](#download) for the first-open steps), or build from source (below).
 
 The first time you use bridged networking, USB drives or Windows shared folders, Tandem asks you to install its helper
 (Settings > Network > Install…, then allow it under System Settings > General > Login Items) and to give **Tandem** Full
