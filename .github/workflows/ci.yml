@@ -1,5 +1,4 @@
-# Minimal continuous integration. It has not been run on GitHub yet and may need adjusting (runner image,
-# Xcode version, tests that need a VM or hardware). Do not rely on it as the only check.
+# Continuous integration: build, Swift tests (portable ones; see the notes below) and Rust tests on a hosted macOS runner.
 name: CI
 # The workflow only reads the repository.
 permissions:
