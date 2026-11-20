@@ -1,6 +1,9 @@
 # Minimal continuous integration. It has not been run on GitHub yet and may need adjusting (runner image,
 # Xcode version, tests that need a VM or hardware). Do not rely on it as the only check.
 name: CI
+# The workflow only reads the repository.
+permissions:
+  contents: read
 on:
   push:
     branches: [main]
