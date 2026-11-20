@@ -261,8 +261,16 @@ public struct VMConfig: Codable, Equatable, Sendable, Identifiable {
     }
 
     /// Problems that would stop the VM from starting. Empty means valid.
-    public func validate(hostCPUs: Int = ProcessInfo.processInfo.processorCount,
-                         hostMemoryMiB: Int = Int(ProcessInfo.processInfo.physicalMemory / 1_048_576)) -> [String] {
+    /// The Mac's processors and memory, as the limits for a VM's settings. `TANDEM_HOST_CPUS` and
+    /// `TANDEM_HOST_MEMORY_MIB` replace them, so that the tests give the same answers on a small build machine.
+    public static var hostCPUs: Int {
+        ProcessInfo.processInfo.environment["TANDEM_HOST_CPUS"].flatMap { Int($0) } ?? ProcessInfo.processInfo.processorCount
+    }
+    public static var hostMemoryMiB: Int {
+        ProcessInfo.processInfo.environment["TANDEM_HOST_MEMORY_MIB"].flatMap { Int($0) } ?? Int(ProcessInfo.processInfo.physicalMemory / 1_048_576)
+    }
+
+    public func validate(hostCPUs: Int = VMConfig.hostCPUs, hostMemoryMiB: Int = VMConfig.hostMemoryMiB) -> [String] {
         var problems: [String] = []
         if name.trimmingCharacters(in: .whitespaces).isEmpty { problems.append("Name is empty.") }
         if cpuCount < 1 || cpuCount > hostCPUs { problems.append("CPU count must be 1–\(hostCPUs).") }
