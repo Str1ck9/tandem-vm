@@ -46,8 +46,9 @@ for f in "$H"/qemu/bin/* "$H"/tools/*; do
 done
 if [ -x "$H/TandemNetHelper" ]; then sign $rt --identifier $TANDEM_BUNDLE_PREFIX.helper "$H/TandemNetHelper"; fi
 if [ -x "$H/tandem" ]; then sign $rt --identifier $TANDEM_BUNDLE_PREFIX.cli "$H/tandem"; fi
-# The Dock-tile stand-in is copied and re-signed ad hoc for every Windows program, so no runtime here.
-if [ -x "$app/Contents/Resources/TandemGuestApp" ]; then sign --identifier $TANDEM_BUNDLE_PREFIX.guestapp "$app/Contents/Resources/TandemGuestApp"; fi
+# The Dock-tile stand-in: notarisation needs the hardened runtime on it too. The copies Tandem makes for each
+# Windows program are re-signed ad hoc by the app, which replaces this signature.
+if [ -x "$app/Contents/Resources/TandemGuestApp" ]; then sign $rt --identifier $TANDEM_BUNDLE_PREFIX.guestapp "$app/Contents/Resources/TandemGuestApp"; fi
 # The macOS guest agent: it runs inside macOS VMs (as a LaunchDaemon), never on this Mac.
 if [ -f "$app/Contents/Resources/tandem-agent-macos" ]; then
   sign $rt --identifier $TANDEM_BUNDLE_PREFIX.agent "$app/Contents/Resources/tandem-agent-macos"

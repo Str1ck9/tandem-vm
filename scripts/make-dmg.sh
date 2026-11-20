@@ -1,6 +1,7 @@
 #!/bin/bash
 # Makes the disk image people download: Tandem.app next to a link to /Applications, so installing is one
-# drag. The image is signed with the same Developer ID as the app; notarise the app before packing it for
+# drag. The image is signed with the same Developer ID as the app (TANDEM_SIGN_TIMESTAMP=1 adds the secure
+# timestamp that notarisation needs); notarise the app before packing it for
 # other Macs (scripts/notarize.sh), and the image afterwards if you like (notarytool accepts .dmg too).
 #
 #   scripts/make-dmg.sh [<Tandem.app>]     default: build/package/Tandem.app
@@ -22,7 +23,8 @@ rm -f "$out"
 # ULFO: LZFSE-compressed, read-only; opens on macOS 10.11 and later.
 hdiutil create -quiet -volname "Tandem $version" -srcfolder "$stage" -fs APFS -format ULFO -ov "$out"
 if [ -n "$identity" ] && [ "$identity" != "-" ]; then
-  codesign --force --sign "$identity" --timestamp=none "$out"
+  if [ "${TANDEM_SIGN_TIMESTAMP:-0}" = 1 ]; then ts=--timestamp; else ts=--timestamp=none; fi
+  codesign --force --sign "$identity" "$ts" "$out"
   codesign --verify "$out"
   echo "Signed with: $identity"
 else

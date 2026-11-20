@@ -21,7 +21,6 @@ Expect rough edges, and do not keep the only copy of anything important in a VM 
 
 ## Known limits
 
-- **Not notarised.** macOS blocks the first launch (see "First open").
 - **USB:** only drives and serial adapters. Full USB pass-through of arbitrary devices needs Apple's
   `com.apple.vm.device-access` entitlement, which this project does not have yet.
 - **3D acceleration is experimental.** Windows 3D cannot resize the display while running and has no hardware video decoding.
@@ -33,17 +32,12 @@ Expect rough edges, and do not keep the only copy of anything important in a VM 
 
 ## First open
 
-This build is signed ad hoc, not notarised by Apple. Either:
-
-1. Open the `.dmg`, drag **Tandem** to **Applications**.
-2. Right-click (Control-click) **Tandem** in Applications, choose **Open**, then **Open** again.
-
-or open it once, then go to System Settings > Privacy & Security and click **Open Anyway**.
+This build is signed with a Developer ID and notarised by Apple. Open the `.dmg`, drag **Tandem** to **Applications** and
+open it. macOS asks once whether you want to open an app downloaded from the Internet: click **Open**.
 
 Features that need the helper (bridged networking, USB drives, Windows shared folders) ask you to install it from the
 Welcome window or Settings > Network, to allow it in System Settings > General > Login Items, and to give **Tandem** Full Disk
-Access (for USB drives). Because the app is signed ad hoc, macOS may refuse to register the helper; the README
-explains the `sudo scripts/install-net-helper.sh` route.
+Access (for USB drives).
 
 ## Verify the download
 

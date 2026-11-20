@@ -142,6 +142,12 @@ rpaths=$(find "$out/Contents" -type f \( -name '*.dylib' -o -perm -u+x \) -print
   | awk '/LC_RPATH/ {getline; getline; print $2}' | grep -E '^(/opt/homebrew|/usr/local|/Applications/UTM|'"$HOME"')' || true)
 if [ -n "$rpaths" ]; then echo "the package still searches outside itself:" >&2; echo "$rpaths" >&2; exit 1; fi
 
+# 6b. The folders this build was made in (and the home folder of whoever builds) are compiled into QEMU and
+#     some libraries as text, and listed in QEMU's firmware descriptions. Replace them with a neutral string
+#     of the same length before signing, so a release does not publish the builder's folder names. Does
+#     nothing when nothing matches. TANDEM_NEUTRALIZE_PATHS adds more folders (separated by ":").
+python3 "$root/scripts/neutralize-paths.py" "$out" "$root" "$qprefix" "${TANDEM_QEMU_3D_PACKAGE_PREFIX:-$root/.cache/qemu-3d-package}"
+
 # 7. Sign.
 "$root/scripts/sign-app.sh" "$out"
 # 8. The signed programs still start (the edits in 5b happen before signing, so check after it).

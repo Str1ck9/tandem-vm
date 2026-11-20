@@ -30,9 +30,8 @@ image and drag **Tandem** to **Applications**.
 
 Requirements: an Apple silicon Mac and macOS 15 or later (macOS 26 is what Tandem is developed on).
 
-**First open.** Releases are not notarised by Apple yet, so macOS stops the first launch. Either right-click (Control-click)
-**Tandem** in Applications and choose **Open**, then **Open** again; or try to open it once, then go to
-System Settings > Privacy & Security and click **Open Anyway**.
+**First open.** Releases are signed with a Developer ID and notarised by Apple. Because the app comes from the Internet,
+macOS asks once whether you want to open it: click **Open**.
 
 **Verify the download** (the checksum is on the release page):
 
@@ -98,7 +97,8 @@ All pictures, with captions and how they were made, are in [`screenshots/`](scre
 | Seamless mode (Windows) | Working; some drag-out cases unfinished |
 | 3D acceleration | Experimental; Windows 3D cannot resize while running |
 | USB pass-through | Drives and serial devices only; full pass-through needs Apple's `com.apple.vm.device-access` entitlement |
-| Notarised releases and automatic updates | Built; no notarised release yet |
+| Notarised releases | Yes, from 0.7.0 |
+| Automatic updates | Built; needs an update feed and signing key, so releases are installed by hand for now |
 | Linux Seamless mode, printers, camera, other importers | Not started (see `ROADMAP.md`) |
 
 Requirements: Apple silicon Mac, **macOS 15 or later** (macOS 26 recommended; development happens on 26).
@@ -169,15 +169,39 @@ scripts/package-app.sh           # build/package/Tandem.app (about 210 MB)
   `scripts/install-net-helper.sh` remains for development builds; remove its daemon first
   (`sudo scripts/install-net-helper.sh --uninstall`), because both serve the same socket.
 
-### Notarisation (for other Macs)
+### Maintainers: release
+
+A release is built, signed, notarised and stapled on your own Mac with your own Apple Developer account. Set these first
+(placeholders; use your own values):
 
 ```sh
-xcrun notarytool store-credentials tandem-notary --apple-id <Apple ID> --team-id <team id> --password <app-specific password>
-TANDEM_SIGN_TIMESTAMP=1 scripts/package-app.sh
-scripts/notarize.sh              # submits, waits, staples, checks with spctl
+export TANDEM_BUNDLE_PREFIX=com.example.tandem TANDEM_APP_ID=com.example.tandem   # your registered identifiers
+export TANDEM_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"        # or leave unset: the first one in your keychain
+export TANDEM_SIGN_TIMESTAMP=1                                                    # Apple's secure timestamp, needed to notarise
 ```
 
-The app-specific password comes from appleid.apple.com > Sign-In and Security > App-Specific Passwords.
+One-time: create an app-specific password at account.apple.com > Sign-In and Security, then store it in your keychain under the
+profile name the scripts expect (`tandem-notary`, or set `TANDEM_NOTARY_PROFILE`). The command asks for the password, so it
+never appears in your shell history:
+
+```sh
+xcrun notarytool store-credentials tandem-notary --apple-id <your Apple ID> --team-id <your team id>
+```
+
+Each release:
+
+1. `scripts/package-app.sh`: builds and signs `build/package/Tandem.app` with the hardened runtime. It also removes the
+   build machine's folder names from the bundled programs (`scripts/neutralize-paths.py`); add more folders with
+   `TANDEM_NEUTRALIZE_PATHS=/path/one:/path/two`.
+2. `scripts/notarize.sh`: submits the app to Apple, waits, staples the ticket and checks it with `spctl`.
+3. `scripts/make-dmg.sh`: makes `build/package/Tandem-<version>.dmg` from the stapled app and signs it.
+4. `xcrun notarytool submit <dmg> --keychain-profile tandem-notary --wait`, then `xcrun stapler staple <dmg>`.
+5. Check: `spctl -a -vvv -t install <dmg>` must say `Notarized Developer ID`. Name the file `Tandem-<version>-arm64.dmg`,
+   add `shasum -a 256` of it to the release, and upload it with `gh release create` or `gh release upload`.
+
+If Apple answers 403 "a required agreement is missing or has expired", sign in at developer.apple.com/account and accept
+the updated Program License Agreement. If notarisation says Invalid, `xcrun notarytool log <submission id> --keychain-profile tandem-notary`
+lists the files at fault (usually a program without the hardened runtime or the secure timestamp).
 
 ## Importing existing virtual machines (Parallels Desktop)
 
