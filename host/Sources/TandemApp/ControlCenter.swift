@@ -176,15 +176,7 @@ struct ControlCenterView: View {
         } message: {
             Text("The virtual machine, its disks and its snapshots go to the Trash. They take up disk space until you empty the Trash.")
         }
-        .alert("That didn’t work", isPresented: Binding(get: { actionError != nil }, set: { if !$0 { actionError = nil } })) {
-            Button("OK") { actionError = nil }
-        } message: { Text(actionError ?? "") }
-        .alert("The system could not be set up", isPresented: Binding(get: { model.provisioningError != nil }, set: { if !$0 { model.provisioningError = nil } })) {
-            Button("OK") { model.provisioningError = nil }
-        } message: { Text(model.provisioningError ?? "") }
-        .alert("That can’t be imported", isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
-            Button("OK") { importError = nil }
-        } message: { Text(importError ?? "") }
+        .modifier(ErrorAlerts(model: model, actionError: $actionError, importError: $importError))
         .onReceive(NotificationCenter.default.publisher(for: .newVM)) { _ in showingNewVM = true }
         .onReceive(NotificationCenter.default.publisher(for: .importVM)) { _ in chooseParallelsVM() }
         .modifier(CloneHandling(cloning: $cloning))
@@ -403,5 +395,32 @@ struct VMRow: View {
         }
         .padding(14)
         .frame(width: 420)
+    }
+}
+
+
+/// The three error alerts of the library window, apart from its body so that the compiler can type-check
+/// the long chain of modifiers in time on slower machines.
+private struct ErrorAlerts: ViewModifier {
+    @ObservedObject var model: AppModel
+    @Binding var actionError: String?
+    @Binding var importError: String?
+
+    private func binding(_ value: Binding<String?>) -> Binding<Bool> {
+        Binding(get: { value.wrappedValue != nil }, set: { if !$0 { value.wrappedValue = nil } })
+    }
+
+    func body(content: Content) -> some View {
+        let provisioning: Binding<String?> = Binding(get: { model.provisioningError }, set: { model.provisioningError = $0 })
+        content
+            .alert("That didn’t work", isPresented: binding($actionError)) {
+                Button("OK") { actionError = nil }
+            } message: { Text(actionError ?? "") }
+            .alert("The system could not be set up", isPresented: binding(provisioning)) {
+                Button("OK") { model.provisioningError = nil }
+            } message: { Text(model.provisioningError ?? "") }
+            .alert("That can’t be imported", isPresented: binding($importError)) {
+                Button("OK") { importError = nil }
+            } message: { Text(importError ?? "") }
     }
 }
