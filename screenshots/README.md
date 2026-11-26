@@ -1,6 +1,6 @@
 # Tandem screenshots
 
-Taken on 19 Nov 2026 from Tandem 0.7.0 (build 223) on macOS 26, light appearance unless noted. They
+Taken in Nov 2026 from Tandem 0.7.0 and 0.8.0 on macOS 26 (pictures 01 to 21 from 0.7.0, 22 to 24 from 0.8.0), light appearance unless noted. They
 are made from a demo library with generic VM names and the account name `demo`, so no personal
 details appear.
 
@@ -27,6 +27,9 @@ details appear.
 | `19-settings-network.png` | Settings > Network: helper status, Full Disk Access, restart |
 | `20-settings-advanced.png` | Settings > Advanced: command-line tool, AI tools (MCP), templates, crash reports |
 | `21-running-ubuntu-mate.png` | A running Ubuntu Desktop VM with the MATE desktop, signed in automatically |
+| `22-ai-level.png` | Configuration > Options > Sharing: the AI tools level for a VM (here Full, with its warning); cropped to the last two groups |
+| `23-snapshot-baseline.png` | Snapshot Manager with a baseline snapshot, the only one an AI tool may revert to |
+| `24-ai-switch.png` | Settings > Advanced: the master switch for AI tools (MCP) and the AI activity log |
 
 ## How they were made
 

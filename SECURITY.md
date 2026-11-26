@@ -23,11 +23,14 @@ Please **do not open a public issue**. Use GitHub's private reporting: on the re
 - **The AI-tools switch is a policy, not a sandbox.** "Allow AI tools (MCP) to control Tandem" (Settings > Advanced) controls
   what `tandem mcp` may do. Any program running as the same Mac user can still talk to the control socket and name itself
   `cli`; Tandem does not authenticate which program is calling. Do not treat the switch as protection against malicious
-  software already running as you.
+  software already running as you. For a client that identifies itself as an AI tool, each VM has a level (Off, Observe,
+  Operate, Full) that the app enforces on every request: reverting, cloning, powering off and writable shares need Full, and
+  deleting a snapshot is never offered. A baseline snapshot limits AI reverts to that snapshot, and every call is logged.
+  A program that names itself `cli` is not held to these levels.
 - **Shared folders follow links inside the share.** A link inside a shared folder that points elsewhere inside the share
   works; links that lead outside the share are refused.
 - The Linux guest agent's self-update checks an FNV-1a checksum of the agent copy shipped inside the app, which guards
   against corruption, not against someone who can change the app.
-- Early releases may not be notarised. Download releases only from this repository's releases page.
+- Download releases only from this repository's releases page and check the SHA-256 shown there.
 
 Only the latest release is supported.

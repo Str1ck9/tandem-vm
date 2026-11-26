@@ -113,6 +113,34 @@ If Apple answers 403 "a required agreement is missing or has expired", sign in a
 the updated Program License Agreement. If notarisation says Invalid, `xcrun notarytool log <submission id> --keychain-profile tandem-notary`
 lists the files at fault (usually a program without the hardened runtime or the secure timestamp).
 
+## Translations
+
+The app's text lives in one string catalog, `resources/Localizable.xcstrings`; English is the source language
+and Spanish is there as the first proof (the main window, the New VM flow and the menus). The build compiles
+the catalog into `<language>.lproj/Localizable.strings` inside the app and lists the languages in its
+`Info.plist`.
+
+To add a language:
+
+1. `scripts/update-localizations.sh` brings the catalog up to date with the source (new strings arrive in English).
+2. Open `resources/Localizable.xcstrings` in Xcode (or edit the JSON) and add the language: one value per string.
+   Keep the placeholders (`%@`, `%lld`) as they are; `LocalizationCatalogTests` checks that.
+3. `scripts/build-app.sh`, then try it without changing the Mac's language:
+   `TANDEM_LANG=es build/Tandem.app/Contents/MacOS/Tandem`. With `TANDEM_LANG_SHOW_MISSING=1` every string
+   that has no translation appears in capitals, which shows what is still missing.
+
+Text written in code as a plain `String` (a status line made from several parts, for example) is not found
+automatically: use `String(localized:)` or a `LocalizedStringKey`, then run the script again. Dates, numbers and
+sizes use the Mac's formats (`formatted(date:time:)`, `ByteCountFormatter`).
+
+## Accessibility
+
+Controls that show only a picture carry an `.accessibilityLabel`, a VM row is one element for VoiceOver (name, system,
+state, with its buttons inside), and every progress bar says its value. To check a window, run the app with
+`TANDEM_SNAPSHOT_A11Y=1` and a snapshot folder (see `SelfTest.swift`): it walks each visible window's accessibility
+tree and prints the controls VoiceOver would read without a name (rules in `VMCore/AccessibilityAudit.swift`).
+A few controls hosted by AppKit (the toolbar's Add menu, some steppers and popups) are still reported; they have labels in the
+source but have not been confirmed with VoiceOver itself. Fixed-width fields do not yet follow the text size.
 
 ## UI snapshots for development
 
