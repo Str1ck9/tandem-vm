@@ -48,9 +48,13 @@ addresses in the table, from the patches and build scripts in this repository (`
 `scripts/build-3d-deps.sh`, `scripts/bundle-tool.sh`), and on request from the maintainers for three years after a release.
 The licence texts accompany each component's source.
 
+## Rust crates in the Linux guest agent
+
+The Linux guest agent (guest/crates/agent) links these Rust crates, each under the MIT or Apache-2.0 licence (or both): `x11rb` and `x11rb-protocol` (the X11 protocol, for guest windows), `png` with `fdeflate`, `flate2`, `miniz_oxide`, `crc32fast` and `bitflags` (program icons), and `rustix`, `gethostname` and `libc`. Their licence texts are in the crates themselves (`cargo vendor` or crates.io).
+
 ## Swift and Rust dependencies
 
-Tandem's Swift code uses only Apple's system frameworks. The guest agent uses the Rust crates `libc`, `serde`, `serde_json`
+Tandem's Swift code uses only Apple's system frameworks. The guest agent uses the Rust crates `libc`, `serde`, `serde_json`, the Linux crates listed above
 and `windows-sys` (and their small dependencies; see `guest/Cargo.lock`), all under MIT or Apache-2.0.
 
 ## Trademarks

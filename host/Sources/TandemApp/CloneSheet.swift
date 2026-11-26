@@ -85,7 +85,7 @@ struct CloneSheet: View {
                     }
                     if !session.snapshots.isEmpty { Toggle("Include snapshots (\(session.snapshots.count))", isOn: $includeSnapshots) }
                     if session.isSuspended {
-                        Toggle("Keep the suspended state", isOn: $keepSuspended)
+                        Toggle("Keep the suspended state", isOn: $keepSuspended).accessibilityLabel("Keep the suspended state")
                         Text("Off: the copy starts fresh from its disk. On: it resumes where the original was suspended, with the original's network settings, until it restarts.")
                             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }

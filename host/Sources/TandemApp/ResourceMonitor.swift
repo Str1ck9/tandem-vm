@@ -17,7 +17,7 @@ struct PowerSettingsFields: View {
                 }
             }
         }
-        Toggle("Keep awake", isOn: $settings.keepAwake)
+        Toggle("Keep awake", isOn: $settings.keepAwake).accessibilityLabel("Keep awake")
         Text("An idle virtual machine is suspended to give its memory back to the Mac; opening one of its programs from the Mac resumes it. It is never suspended while it is in use: while you work in it, while its processor is busy, while something inside it asked to stay awake (in the guest: tandem-agent keep-awake -- <command>), or while Keep awake is on. Closing its window does not suspend it.")
             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
     }

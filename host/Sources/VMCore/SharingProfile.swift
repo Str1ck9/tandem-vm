@@ -24,6 +24,57 @@ public enum ClipboardSharing: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// How much an AI tool connected through the MCP server may do with one VM. The Mac's own user at the
+/// command line is not limited by this: it is the owner's own tool. The global switch "Allow AI tools
+/// (MCP) to control Tandem" is the master off; this is the per-VM level below it.
+///
+/// - `off`: nothing, not even looking at the VM.
+/// - `observe`: list and inspect the VM, read its snapshots, take a screenshot.
+/// - `operate`: also start, shut down gracefully, suspend, resume and restart it, take snapshots,
+///   share Mac folders read-only and stop sharing them. Running commands inside the guest also needs
+///   "Commands from the Mac" to allow AI tools.
+/// - `full`: also what can lose work or widen access: revert to a snapshot, clone, power off and reset,
+///   share folders writable.
+///
+/// Deleting a snapshot is never offered to AI tools at any level.
+/// A configuration written before levels existed has no setting and gets `operate`: everything an AI tool
+/// could do before except the destructive operations that now need `full`.
+public enum AITier: String, Codable, CaseIterable, Comparable, Sendable {
+    case off, observe, operate, full
+
+    /// What a VM without the setting gets.
+    public static let standard: AITier = .operate
+
+    public var rank: Int {
+        switch self {
+        case .off: return 0
+        case .observe: return 1
+        case .operate: return 2
+        case .full: return 3
+        }
+    }
+    public static func < (a: AITier, b: AITier) -> Bool { a.rank < b.rank }
+
+    public var label: String {
+        switch self {
+        case .off: return "Off"
+        case .observe: return "Observe"
+        case .operate: return "Operate"
+        case .full: return "Full"
+        }
+    }
+
+    /// One line for the settings panel and the error messages.
+    public var summary: String {
+        switch self {
+        case .off: return "AI tools cannot use this virtual machine."
+        case .observe: return "AI tools can look: list it, read its details and snapshots, take screenshots."
+        case .operate: return "AI tools can also start, shut down, suspend and restart it, take snapshots and share folders read-only."
+        case .full: return "AI tools can also revert snapshots, clone it, power it off and share folders they can change. Work can be lost."
+        }
+    }
+}
+
 /// Who on the Mac may run commands inside the guest (`tandem exec`, the MCP tool `guest_exec`).
 ///
 /// The Mac's own user, at the command line, already controls the VM fully (its console, its disk), so
@@ -70,8 +121,11 @@ public struct SharingRules: Codable, Equatable, Sendable {
     public var usb: Bool
     /// Nil (every configuration written before this existed) means the default, `.macUser`.
     public var commands: CommandAccess?
-    public init(clipboard: ClipboardSharing = .both, network: NetworkExposure = .open, usb: Bool = true, commands: CommandAccess? = nil) {
-        self.clipboard = clipboard; self.network = network; self.usb = usb; self.commands = commands
+    /// Nil (every configuration written before levels existed) means `AITier.standard`.
+    public var aiTier: AITier?
+    public init(clipboard: ClipboardSharing = .both, network: NetworkExposure = .open, usb: Bool = true, commands: CommandAccess? = nil,
+                aiTier: AITier? = nil) {
+        self.clipboard = clipboard; self.network = network; self.usb = usb; self.commands = commands; self.aiTier = aiTier
     }
 }
 
@@ -84,13 +138,16 @@ public struct SharingProfile: Codable, Equatable, Sendable {
     public var usb: Bool
     /// Who may run commands inside the guest from the Mac.
     public var commands: CommandAccess
+    /// How much AI tools may do with this VM (see `AITier`).
+    public var aiTier: AITier
 
     public init(folders: [SharedFolder] = [], clipboard: ClipboardSharing = .both, network: NetworkExposure = .open, usb: Bool = true,
-                commands: CommandAccess = .macUser) {
+                commands: CommandAccess = .macUser, aiTier: AITier = .standard) {
         self.folders = folders; self.clipboard = clipboard; self.network = network; self.usb = usb; self.commands = commands
+        self.aiTier = aiTier
     }
 
-    private enum CodingKeys: String, CodingKey { case folders, clipboard, network, usb, commands }
+    private enum CodingKeys: String, CodingKey { case folders, clipboard, network, usb, commands, aiTier }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         folders = try c.decode([SharedFolder].self, forKey: .folders)
@@ -98,6 +155,7 @@ public struct SharingProfile: Codable, Equatable, Sendable {
         network = try c.decode(NetworkExposure.self, forKey: .network)
         usb = try c.decode(Bool.self, forKey: .usb)
         commands = try c.decodeIfPresent(CommandAccess.self, forKey: .commands) ?? .macUser
+        aiTier = try c.decodeIfPresent(AITier.self, forKey: .aiTier) ?? .standard
     }
 
     /// What a new VM gets: nothing shared yet, everything allowed.
@@ -133,14 +191,15 @@ extension VMConfig {
             // An older configuration, or one edited by an older build, can only say "clipboard off".
             let clipboard: ClipboardSharing = sharedClipboard == false ? .off : rules.clipboard
             return SharingProfile(folders: sharedFolders, clipboard: clipboard, network: rules.network, usb: rules.usb,
-                                  commands: rules.commands ?? .macUser)
+                                  commands: rules.commands ?? .macUser, aiTier: rules.aiTier ?? .standard)
         }
         set {
             sharedFolders = newValue.folders
             // Nil (an older configuration) stays nil while the clipboard is fully shared.
             sharedClipboard = newValue.clipboard == .off ? false : (sharedClipboard == nil && newValue.clipboard == .both ? nil : true)
             let rules = SharingRules(clipboard: newValue.clipboard, network: newValue.network, usb: newValue.usb,
-                                     commands: newValue.commands == .macUser ? nil : newValue.commands)
+                                     commands: newValue.commands == .macUser ? nil : newValue.commands,
+                                     aiTier: newValue.aiTier == .standard ? nil : newValue.aiTier)
             // Keep old configurations byte-identical while nothing new is asked of them.
             sharingRules = rules == SharingRules() && sharingRules == nil ? nil : rules
         }
@@ -245,8 +304,17 @@ public struct SharingPolicy: Equatable, Sendable {
     /// Who may run commands inside the guest from the Mac.
     public var commands: CommandAccess { profile.commands }
 
+    /// How much AI tools may do with this VM.
+    public var aiTier: AITier { profile.aiTier }
+
     /// Throws unless a command from this kind of Mac client may be run inside the guest.
+    /// For an AI tool both settings must agree: "Commands from the Mac" allows AI tools, and the AI level is
+    /// at least Operate.
     public func requireCommands(fromAI: Bool) throws {
+        if fromAI && profile.commands == .macUserAndAI && profile.aiTier < .operate {
+            throw VMError("AI tools may not run commands in this virtual machine at its AI level (\(profile.aiTier.label)).",
+                          detail: "Set the AI level to Operate or Full under Configure > Options > Sharing > AI tools.")
+        }
         switch (profile.commands, fromAI) {
         case (.macUserAndAI, _), (.macUser, false): return
         case (.off, _):

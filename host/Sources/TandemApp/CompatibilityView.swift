@@ -36,6 +36,7 @@ struct CompatibilityRow: View {
             HStack(spacing: 6) {
                 Image(systemName: report.canProceed ? "checkmark.circle.fill" : "xmark.octagon.fill")
                     .foregroundStyle(report.canProceed ? .green : .red)
+                    .accessibilityLabel(report.canProceed ? "Compatible" : "Not compatible")
                 Text(report.summary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 Button("Details…") { showingDetails = true }
                     .popover(isPresented: $showingDetails, arrowEdge: .trailing) { CompatibilityDetails(report: report) }
@@ -76,6 +77,7 @@ struct CompatibilityDetails: View {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Image(systemName: finding.blocking ? "xmark.octagon.fill" : finding.level.symbol)
                                 .foregroundStyle(finding.blocking ? .red : finding.level.tint).frame(width: 18)
+                                .accessibilityLabel(finding.blocking ? "Blocks this virtual machine" : finding.level.label)
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(spacing: 6) {
                                     Text(finding.title).bold()

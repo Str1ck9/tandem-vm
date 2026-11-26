@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/Str1ck9/tandem-vm/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Str1ck9/tandem-vm?include_prereleases&label=release"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <img alt="Platform: macOS 15 or later, Apple silicon" src="https://img.shields.io/badge/platform-macOS%2015%2B%20%C2%B7%20Apple%20silicon-lightgrey">
+  <img alt="Platform: macOS 26, Apple silicon" src="https://img.shields.io/badge/platform-macOS%2026%20%C2%B7%20Apple%20silicon-lightgrey">
   <img alt="Status: early" src="https://img.shields.io/badge/status-early-orange">
 </p>
 
@@ -17,8 +17,8 @@
 </p>
 
 Tandem runs Windows 11 (ARM), Linux and macOS in virtual machines on your Mac. **Create New** downloads Microsoft's, Apple's and the
-distributions' own installation media and sets up supported guests unattended: you pick a system, give it a name and an account, and Tandem handles
-the installation. It brings a shared clipboard, shared folders, drag and drop, snapshots, instant clones and a command line with an MCP server.
+distributions' own images and installs them unattended: you pick a system, give it a name and an account, and Tandem does the
+rest. It brings a shared clipboard, shared folders, drag and drop, snapshots, instant clones and a command line with an MCP server.
 
 Tandem is **early software**: the day-to-day flows work for its author, but expect rough edges, and read
 [Status](#status) before trusting it with VMs you cannot recreate. It is not affiliated with Parallels, Apple or Microsoft.
@@ -39,35 +39,14 @@ macOS asks once whether you want to open it: click **Open**.
 shasum -a 256 ~/Downloads/Tandem-*-arm64.dmg
 ```
 
-Prefer to build it yourself? See [Build from source](#build-from-source) and the [development and release guide](docs/DEVELOPMENT.md).
-
-## Create your first VM
-
-1. Open **Tandem** from Applications and choose **Create New**.
-2. Choose a system to download. Select an edition, language or Linux desktop when those options are offered.
-3. Give the VM a name, create its account, and start the installation. Keep your Mac awake and connected to the
-   Internet while Tandem downloads the media and finishes setup.
-4. When installation finishes, use the VM's desktop. Unattended Windows and Linux installations include Tandem's
-   guest tools for integration with your Mac; macOS guest tools are newer and lightly tested. Check the VM's
-   configuration for guest-tools status and installation controls.
-
-The Welcome window explains helper installation for features that need it. You can start with a basic VM and
-set up the helper when you need bridged networking, USB drives or Windows shared folders. See [Install](#install).
-
-In a Windows VM, Command is the Windows key, Option is Alt, and Control-click is a right click.
-
-**Tandem is free; guest operating systems retain their own licensing and activation requirements.** Downloading
-Windows installation media through Tandem does not provide a Windows licence.
-
-**Updates in 0.7.0:** automatic updating is not active. Download and install newer releases from
-[Releases](https://github.com/Str1ck9/tandem-vm/releases); the built-in updater is awaiting its feed and signing key.
+Prefer to build it yourself? See [Build from source](#build-from-source) and [Packaged app](#packaged-app-self-contained-signed).
 
 ## Screenshots
 
 <table>
   <tr>
-    <td align="center" width="33%"><a href="screenshots/03-create-new.png"><img src="screenshots/03-create-new.png" alt="Create New"></a><br><sub><b>New VM:</b> install from an image, import, or download official installation media</sub></td>
-    <td align="center" width="33%"><a href="screenshots/04-download-windows-11.png"><img src="screenshots/04-download-windows-11.png" alt="Windows 11 download list"></a><br><sub><b>Windows 11</b> from Microsoft: choose an available ARM edition and language</sub></td>
+    <td align="center" width="33%"><a href="screenshots/03-create-new.png"><img src="screenshots/03-create-new.png" alt="Create New"></a><br><sub><b>New VM:</b> install from an image, import, or download a free system</sub></td>
+    <td align="center" width="33%"><a href="screenshots/04-download-windows-11.png"><img src="screenshots/04-download-windows-11.png" alt="Windows 11 download list"></a><br><sub><b>Windows 11</b> from Microsoft: every edition and language for ARM</sub></td>
     <td align="center" width="33%"><a href="screenshots/05-download-macos.png"><img src="screenshots/05-download-macos.png" alt="macOS download"></a><br><sub><b>macOS</b> from Apple's restore images</sub></td>
   </tr>
   <tr>
@@ -82,7 +61,7 @@ Windows installation media through Tandem does not provide a Windows licence.
   </tr>
   <tr>
     <td align="center"><a href="screenshots/14-snapshot-manager.png"><img src="screenshots/14-snapshot-manager.png" alt="Snapshot Manager"></a><br><sub><b>Snapshots:</b> take, revert and delete</sub></td>
-    <td align="center"><a href="screenshots/18-settings-general.png"><img src="screenshots/18-settings-general.png" alt="Settings"></a><br><sub><b>Settings:</b> update preferences; automatic updates are not active in 0.7.0</sub></td>
+    <td align="center"><a href="screenshots/18-settings-general.png"><img src="screenshots/18-settings-general.png" alt="Settings"></a><br><sub><b>Settings:</b> including automatic updates</sub></td>
     <td align="center"><a href="screenshots/21-running-ubuntu-mate.png"><img src="screenshots/21-running-ubuntu-mate.png" alt="Ubuntu MATE running in Tandem"></a><br><sub><b>A running</b> Ubuntu MATE VM, signed in automatically</sub></td>
   </tr>
 </table>
@@ -91,7 +70,7 @@ All pictures, with captions and how they were made, are in [`screenshots/`](scre
 
 ## What it does
 
-- **Install a system without hunting for ISOs.** Create New offers official installation media for supported systems and sets them up unattended:
+- **Install a system without hunting for ISOs.** Create New offers free systems to download and install unattended:
   Windows 11 ARM (Microsoft's own media), macOS (Apple's restore images), Ubuntu (MATE, Xfce or GNOME desktop, or Server),
   Debian, Fedora and Kali. You answer one page (name, account); Tandem does the rest.
 - **Two engines.** macOS guests run on Apple's Virtualization framework. Windows runs on QEMU with Apple's Hypervisor
@@ -107,7 +86,7 @@ All pictures, with captions and how they were made, are in [`screenshots/`](scre
 - **Automation**: a `tandem` command-line tool and an MCP server, so scripts and AI tools can start, snapshot and run commands
   in VMs, with switches and per-VM permissions that you control.
 - **Import** existing Parallels Desktop VMs that you own.
-- **Self-contained app** with its own QEMU, an uninstaller, signed-update support (inactive in 0.7.0), and crash-report prompts that send nothing without your say.
+- **Self-contained app** with its own QEMU, signed updates, uninstaller and crash-report prompts that send nothing without your say.
 
 ## Status
 
@@ -120,7 +99,7 @@ All pictures, with captions and how they were made, are in [`screenshots/`](scre
 | USB pass-through | Drives and serial devices only; full pass-through needs Apple's `com.apple.vm.device-access` entitlement |
 | Notarised releases | Yes, from 0.7.0 |
 | Automatic updates | Built; needs an update feed and signing key, so releases are installed by hand for now |
-| Linux Seamless mode, printers, camera, other importers | Not started (see [Roadmap](ROADMAP.md)) |
+| Linux Seamless mode, printers, camera, other importers | Not started (see `ROADMAP.md`) |
 
 Requirements: Apple silicon Mac, **macOS 15 or later** (macOS 26 recommended; development happens on 26).
 
@@ -135,32 +114,104 @@ Disk Access for USB drives. The Welcome window walks you through it.
 
 ## Build from source
 
-Requires Xcode with Swift 6, Rust, and Homebrew on an Apple silicon Mac running macOS 15 or later.
-Install Xcode and Rust first, then:
+Requires Xcode (Swift 6), Rust, and for development builds `brew install qemu swtpm`.
+
+## Layout
+
+| Path | Content |
+|---|---|
+| `host/` | Swift package: `VMCore`, `EngineVZ`, `EngineQEMU`, `GuestLink`, `Provisioning`, `Sharing`, `Updater`, `vmctl`, `tandem`, `TandemApp` |
+| `guest/` | Rust workspace: `link-proto` (codec, transports, client), `tandem-agent` |
+| `protocol/` | `PROTOCOL.md`, the reference encoder and shared test vectors |
+| `patches/` | Patches to QEMU (QEMU's licence applies to them) |
+| `scripts/` | Build, signing, packaging, release scripts and the agent end-to-end test |
+| `screenshots/` | Pictures of the app |
+
+### Build and test
 
 ```sh
-git clone https://github.com/Str1ck9/tandem-vm.git
-cd tandem-vm
-brew install qemu swtpm
-scripts/build-app.sh
-open build/Tandem.app
+scripts/build.sh                 # host package + signed vmctl (prints its path)
+scripts/build-app.sh             # build/Tandem.app, signed ad hoc for local use
+(cd host && swift test)          # Swift tests (some need local sockets or disk images)
+(cd guest && cargo test)         # Rust tests
+scripts/build-agent.sh           # guest agent for Linux arm64 and, with llvm-mingw, Windows arm64
+scripts/agent-test/run.sh        # boots a guest on both engines and checks the agent end to end
 ```
 
-This makes a development app signed ad hoc for local use. Guest integration also requires the corresponding
-[guest-agent builds](docs/DEVELOPMENT.md#build-and-test). See the [development and release guide](docs/DEVELOPMENT.md)
-for repository layout, tests, guest-agent builds, self-contained packaging, helper setup, signing and notarisation.
+`scripts/agent-test/run.sh` needs an Alpine arm64 cloud image at `.cache/images/alpine-arm64.qcow2`
+(for example `generic_alpine-3.24.1-aarch64-uefi-cloudinit-r0.qcow2` from alpinelinux.org).
+
+Set `TANDEM_HOME` to keep test VMs out of the real library (`~/Library/Application Support/Tandem`).
+Before running the app from a build of your own, read [Maintainers](#maintainers).
+
+## Packaged app (self-contained, signed)
+
+`scripts/build-app.sh` makes a development app that uses QEMU and the other tools where they are installed
+(Tandem's own QEMU build in `~/Library/Application Support/Tandem/qemu`, then Homebrew).
+`scripts/package-app.sh` makes one that carries everything it runs and is signed with your Developer ID:
+
+```sh
+scripts/package-app.sh           # build/package/Tandem.app (about 210 MB)
+```
+
+- Inside: a lean QEMU build (`QEMU_PROFILE=package scripts/build-qemu.sh`, no GTK/SDL/FUSE) in
+  `Contents/Helpers/qemu`, its firmware in `Contents/Resources/qemu` (passed with `-L`), swtpm, zstd,
+  wimlib and usbredirect in `Contents/Helpers/tools`, the helper, the `tandem` tool and the guest agents.
+  Every library is copied in and rewired (`scripts/bundle-tool.sh`); nothing links to Homebrew afterwards.
+  The VirtIO driver disc (837 MB) is not included; Tandem finds or downloads it as before.
+- Signing (`scripts/sign-app.sh`): the first "Developer ID Application" identity in your keychain
+  (`TANDEM_SIGN_IDENTITY` overrides; without one the app is signed ad hoc, which runs on your Mac but cannot register its helper
+  with macOS's service manager, so use `sudo scripts/install-net-helper.sh` there), hardened runtime, entitlements in
+  `scripts/entitlements/`.
+- The helper: a packaged app installs it itself (Settings > Network > Install…) with macOS's service manager;
+  approve it once in System Settings > General > Login Items. It runs from inside the app with `--from-bundle`,
+  serves the user who owns the app, and only runs tools signed by the same developer team.
+  `scripts/install-net-helper.sh` remains for development builds; remove its daemon first
+  (`sudo scripts/install-net-helper.sh --uninstall`), because both serve the same socket.
+
+### Maintainers: release
+
+A release is built, signed, notarised and stapled on your own Mac with your own Apple Developer account. Set these first
+(placeholders; use your own values):
+
+```sh
+export TANDEM_BUNDLE_PREFIX=com.example.tandem TANDEM_APP_ID=com.example.tandem   # your registered identifiers
+export TANDEM_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"        # or leave unset: the first one in your keychain
+export TANDEM_SIGN_TIMESTAMP=1                                                    # Apple's secure timestamp, needed to notarise
+```
+
+One-time: create an app-specific password at account.apple.com > Sign-In and Security, then store it in your keychain under the
+profile name the scripts expect (`tandem-notary`, or set `TANDEM_NOTARY_PROFILE`). The command asks for the password, so it
+never appears in your shell history:
+
+```sh
+xcrun notarytool store-credentials tandem-notary --apple-id <your Apple ID> --team-id <your team id>
+```
+
+Each release:
+
+1. `scripts/package-app.sh`: builds and signs `build/package/Tandem.app` with the hardened runtime. It also removes the
+   build machine's folder names from the bundled programs (`scripts/neutralize-paths.py`); add more folders with
+   `TANDEM_NEUTRALIZE_PATHS=/path/one:/path/two`.
+2. `scripts/notarize.sh`: submits the app to Apple, waits, staples the ticket and checks it with `spctl`.
+3. `scripts/make-dmg.sh`: makes `build/package/Tandem-<version>.dmg` from the stapled app and signs it.
+4. `xcrun notarytool submit <dmg> --keychain-profile tandem-notary --wait`, then `xcrun stapler staple <dmg>`.
+5. Check: `spctl -a -vvv -t install <dmg>` must say `Notarized Developer ID`. Name the file `Tandem-<version>-arm64.dmg`,
+   add `shasum -a 256` of it to the release, and upload it with `gh release create` or `gh release upload`.
+
+If Apple answers 403 "a required agreement is missing or has expired", sign in at developer.apple.com/account and accept
+the updated Program License Agreement. If notarisation says Invalid, `xcrun notarytool log <submission id> --keychain-profile tandem-notary`
+lists the files at fault (usually a program without the hardened runtime or the secure timestamp).
 
 ## Importing existing virtual machines (Parallels Desktop)
 
 Tandem can read a Parallels Desktop VM bundle (`.pvm`, `.macvm`) that you own and run it, without modifying the original. Tandem is not
-associated with Parallels; the import reads the files of your own VMs. You can import through **File → Import from Parallels…**
-or use `vmctl` after a [source build](#build-from-source). Run these commands from the cloned repository directory:
+associated with Parallels; the import reads the files of your own VMs.
 
 ```sh
-VMCTL="$PWD/host/.build/debug/vmctl"
-"$VMCTL" inspect-parallels "$HOME/Parallels/Kali Linux.pvm"   # read-only report
-"$VMCTL" import-parallels "$HOME/Parallels/Kali Linux.pvm"    # no disk copy
-"$VMCTL" start "Kali Linux"
+vmctl inspect-parallels ~/Parallels/*.pvm ~/Parallels/*.macvm   # read-only report
+vmctl import-parallels "~/Parallels/Kali Linux.pvm"             # no disk copy
+vmctl start "Kali Linux"
 ```
 
 The Parallels bundle is never written. A `.pvm` import is an overlay on the original disk, so the original must stay
@@ -170,7 +221,7 @@ APFS clone and is independent from the start.
 Windows needs a repair pass to boot on QEMU, which `import-parallels` runs when given a Windows 11 ARM64 installer ISO:
 
 ```sh
-"$VMCTL" import-parallels "$HOME/Parallels/Windows 11.pvm" \
+vmctl import-parallels ~/Parallels/"Windows 11.pvm" \
   --windows-iso ~/ISOs/Windows11_Client_arm64.iso --virtio-iso .cache/images/virtio-win-0.1.302.iso
 ```
 
@@ -182,6 +233,21 @@ scripts/build-qemu.sh        # one time, about five minutes; installs to ~/Libra
 ```
 
 `vmctl` and the app use that build automatically when it exists (or the one named by `TANDEM_QEMU_PREFIX`).
+
+## Using the app
+
+`scripts/build-app.sh` builds `build/Tandem.app`. **Import from Parallels…** (toolbar, or File menu) brings in a `.pvm` or
+`.macvm`; for Windows it asks once for a Windows 11 ARM64 installer ISO and the virtio-win driver ISO. A VM's screen opens
+in its own window: Command is the Windows key, Option is Alt, Control-click is a right click.
+
+To check the UI without operating it, the app can render its own windows to PNG files:
+
+```sh
+TANDEM_SNAPSHOT_DIR=/tmp/snap TANDEM_SNAPSHOT_START="Windows 11" build/Tandem.app/Contents/MacOS/Tandem
+```
+
+`vmctl start <vm> --embedded`, `vmctl screenshot <vm> out.png` and `vmctl input <vm> key:0x37 click:700,400 "type:hello"`
+do the same from the command line.
 
 ## Command line and AI tools (MCP)
 
@@ -206,18 +272,89 @@ claude mcp add tandem -- ~/.local/bin/tandem mcp     # or /opt/homebrew/bin/tand
 ```
 
 Nothing works through it until **Allow AI tools (MCP) to control Tandem** is turned on in Tandem > Settings > Advanced
+(off by default). That is the master switch. Below it, each VM has an **AI level**, set in Configure > Options >
+Sharing > AI tools (or `tandem sharing <vm> --ai-tier observe|operate|full|off`):
+
+| Level | What AI tools may do with the VM |
+|---|---|
+| Off | Nothing, not even look at it |
+| Observe | List and inspect it, read its snapshots, take screenshots |
+| **Operate** (the default) | Also start, shut down gracefully, suspend, resume and restart it, take snapshots, share folders read-only, run commands (if the VM's *Commands from the Mac* allows AI tools) |
+| Full | Also revert to a snapshot, clone, power off or reset, share folders the guest can change. Work can be lost, so it is never the default |
+
+Deleting a snapshot is never offered to AI tools, and an AI tool cannot change a VM's level, its baseline or who may run
+commands. **Baseline:** mark one snapshot as a VM's baseline (Snapshot Manager > Set as Baseline, or `tandem snapshot
+baseline <vm> <snapshot>`). An AI tool may then revert only to that snapshot, so a bad run cannot roll back past its safety
+net. `guest_exec` also needs the VM's own permission, Configure > Options > Sharing > Commands from the Mac ("The
+command-line tool and AI tools"); by default only the command-line tool may run commands, and restricted VMs allow none.
+The app decides all of this on every request, whatever the client claims to be; the `tandem` command is the Mac user's
+own tool and is not limited by the AI level. Every call an AI tool makes, allowed or refused, is listed in Tandem >
+Settings > Advanced > AI activity (`ai-activity.log` in the library folder). Both clients talk to the app over
+`control.sock` in the library folder (owner-only).
+
+Existing VMs keep what AI tools could do before, except the destructive operations: they read as **Operate**, so revert,
+clone, power off and writable shares now need the Full level.
+
 (off by default). `guest_exec` also needs the VM's own permission, Configure > Options > Sharing > Commands from the
 Mac ("The command-line tool and AI tools"); by default only the command-line tool may run commands, and restricted VMs
 allow none. The app decides all of this; the tool only says whether it is the command line or an AI tool. Both talk to
 the app over `control.sock` in the library folder (owner-only).
 
+## Translations
 
-<a id="packaged-app-self-contained-signed"></a>
+The app's text lives in one string catalog, `resources/Localizable.xcstrings`; English is the source language
+and Spanish is there as the first proof (the main window, the New VM flow and the menus). The build compiles
+the catalog into `<language>.lproj/Localizable.strings` inside the app and lists the languages in its
+`Info.plist`.
+
+To add a language:
+
+1. `scripts/update-localizations.sh` brings the catalog up to date with the source (new strings arrive in English).
+2. Open `resources/Localizable.xcstrings` in Xcode (or edit the JSON) and add the language: one value per string.
+   Keep the placeholders (`%@`, `%lld`) as they are; `LocalizationCatalogTests` checks that.
+3. `scripts/build-app.sh`, then try it without changing the Mac's language:
+   `TANDEM_LANG=es build/Tandem.app/Contents/MacOS/Tandem`. With `TANDEM_LANG_SHOW_MISSING=1` every string
+   that has no translation appears in capitals, which shows what is still missing.
+
+Text written in code as a plain `String` (a status line made from several parts, for example) is not found
+automatically: use `String(localized:)` or a `LocalizedStringKey`, then run the script again. Dates, numbers and
+sizes use the Mac's formats (`formatted(date:time:)`, `ByteCountFormatter`).
+
+## Accessibility
+
+Controls that show only a picture carry an `.accessibilityLabel`, a VM row is one element for VoiceOver (name, system,
+state, with its buttons inside), and every progress bar says its value. To check a window, run the app with
+`TANDEM_SNAPSHOT_A11Y=1` and a snapshot folder (see `SelfTest.swift`): it walks each visible window's accessibility
+tree and prints the controls VoiceOver would read without a name (rules in `VMCore/AccessibilityAudit.swift`).
 
 ## Maintainers
 
-See the [development and release guide](docs/DEVELOPMENT.md) for bundle identifiers, repository settings,
-helper installation, signing and update keys, packaging, and [release steps](docs/DEVELOPMENT.md#maintainers-release).
+Things a fork or a release build has to set once:
+
+- **Repository name.** `host/Sources/IdentityCore/TandemIdentity.swift` has `projectRepository` (`owner/repo`). Issue
+  reports and the default update feed are derived from it. If you fork, set it, and the repository address in
+  `.github/ISSUE_TEMPLATE/config.yml`, before publishing builds.
+- **Bundle identifiers.** Every identifier (the app's, the helper's launchd label, the signing identifiers of the bundled tools, the
+  guest agent, the document type) derives from two build settings, read by every script in `scripts/` through
+  `scripts/identity.sh`:
+
+  | Variable | Default | Names |
+  |---|---|---|
+  | `TANDEM_BUNDLE_PREFIX` | `local.tandem` | helper (`<prefix>.helper`), tools (`<prefix>.qemu-nbd`, …), agent, document type |
+  | `TANDEM_APP_ID` | `<prefix>.app` | the app's own bundle identifier |
+
+  The defaults are right for building and running Tandem yourself. For builds you ship under your own name, export both before
+  running any script, for example `export TANDEM_BUNDLE_PREFIX=com.example.tandem TANDEM_APP_ID=com.example.tandem`, and register
+  the identifier under your own Apple developer account. `scripts/build-app.sh` writes them into the app's `Info.plist`
+  (`TandemBundlePrefix`, `TandemAppID`); the app, its helper and its command-line tool read them from there, so one build stays
+  consistent. With `sudo`, pass them on explicitly: `sudo TANDEM_BUNDLE_PREFIX=… TANDEM_APP_ID=… scripts/install-net-helper.sh`.
+- **Signing.** `TANDEM_SIGN_IDENTITY` names your Developer ID Application certificate; without one, builds are signed ad hoc.
+- **Update key.** Updates are signed with an Ed25519 key you create: `tandem-release keygen` writes the private key
+  (keep it out of git, and back it up: without it no installed copy accepts another update) and prints the public key, which goes in
+  `resources/update-public-key.txt` (or `TANDEM_UPDATE_PUBLIC_KEY`). `scripts/release.sh` builds, signs and writes the feed.
+  `TANDEM_UPDATE_FEED_URL` overrides the feed address compiled into a build.
+- **USB entitlement.** Capturing arbitrary USB devices needs `com.apple.vm.device-access`, which Apple grants on request to a
+  developer account for a registered App ID. Until a build has it, Tandem lends only drives and serial devices.
 
 ## Licence
 

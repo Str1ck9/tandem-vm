@@ -101,6 +101,7 @@ fn clipboard_tool() -> Option<ClipboardTool> {
 pub fn clipboard_available() -> bool { clipboard_tool().is_some() }
 
 pub fn clipboard_get() -> Option<String> {
+    if CLIPBOARD_PAUSED.load(std::sync::atomic::Ordering::SeqCst) { return None; }
     let output = match clipboard_tool()? {
         ClipboardTool::Wayland => session_command("wl-paste").args(["--no-newline", "--type", "text/plain"]).stderr(Stdio::null()).output(),
         ClipboardTool::X11 => session_command("xclip").args(["-selection", "clipboard", "-o"]).stderr(Stdio::null()).output(),
@@ -153,7 +154,15 @@ pub fn set_resolution(width: u32, height: u32) -> Result<(), DisplayError> {
     let (output, _, _) = xrandr_state().ok_or(DisplayError::Unsupported)?;
     let status = session_command("xrandr").args(["--output", &output, "--mode", &format!("{width}x{height}")])
         .stderr(Stdio::null()).status().map_err(|e| DisplayError::Failed(e.to_string()))?;
-    // xrandr fails when the mode is not in the driver's list.
+    if status.success() { return Ok(()); }
+    // The mode is not in the driver's list (a window of any size on the Mac, or Seamless Mode's desktop):
+    // make one with the standard reduced-blanking timings, offer it to the output and use it.
+    let name = format!("{width}x{height}_tandem");
+    let modeline = super::linux_text::cvt_reduced_blanking(width, height, 60.0);
+    let _ = session_command("xrandr").arg("--newmode").arg(&name).args(modeline.xrandr_arguments()).stderr(Stdio::null()).status();
+    let _ = session_command("xrandr").args(["--addmode", &output, &name]).stderr(Stdio::null()).status();
+    let status = session_command("xrandr").args(["--output", &output, "--mode", &name]).stderr(Stdio::null()).status()
+        .map_err(|e| DisplayError::Failed(e.to_string()))?;
     if status.success() { Ok(()) } else { Err(DisplayError::Unsupported) }
 }
 
@@ -174,7 +183,7 @@ pub fn shutdown(restart: bool) -> Result<(), String> {
 // tandem1, … in the order of the host's list), or one virtiofs device holding them all on the VZ engine
 // (tag "tandem"). Mounting needs root, so only an agent installed as a system service offers this.
 
-const SHARE_ROOT: &str = "/media/mac";
+pub(crate) const SHARE_ROOT: &str = "/media/mac";
 
 pub fn shared_folders_available() -> bool { (unsafe { libc::geteuid() }) == 0 }
 
@@ -274,14 +283,14 @@ Virtual-2 disconnected\n";
 /// Nothing to tidy up on this platform.
 pub fn startup() {}
 
-// MARK: Guest windows (not offered on this system)
+// MARK: Guest windows (from the X server; see linux_x11.rs)
 
-pub fn windows_available() -> bool { false }
-pub fn list_windows() -> super::WindowList { super::WindowList::default() }
-pub fn window_action(_id: u64, _action: u32) -> Result<(), String> { Err("not supported".into()) }
-pub fn window_events_start() {}
-pub fn window_change_count() -> u64 { 0 }
-pub fn wait_window_change(_seen: u64, timeout: std::time::Duration) { std::thread::sleep(timeout) }
+pub fn windows_available() -> bool { super::linux_x11::windows_available() }
+pub fn list_windows() -> super::WindowList { super::linux_x11::list_windows() }
+pub fn window_action(id: u64, action: u32) -> Result<(), String> { super::linux_x11::window_action(id, action) }
+pub fn window_events_start() { super::linux_x11::window_events_start() }
+pub fn window_change_count() -> u64 { super::linux_x11::window_change_count() }
+pub fn wait_window_change(seen: u64, timeout: std::time::Duration) { super::linux_x11::wait_window_change(seen, timeout) }
 pub fn display_scale() -> Option<u32> { None }
 pub fn rescale_windows(_factor: f64) {}
 /// Processor time this process has used, in milliseconds.
@@ -295,20 +304,20 @@ pub fn set_display_scale(_percent: u32) -> Result<(), String> { Err("not support
 pub fn set_work_area(_area: Option<(i32, i32, i32, i32)>) -> Result<(), String> { Err("not supported".into()) }
 pub fn keep_work_area() {}
 
-// MARK: Guest programs and icons (not offered on this system)
+// MARK: Guest programs and icons (from the desktop's .desktop files; see linux_desktop.rs)
 
-pub fn programs_available() -> bool { false }
-pub fn list_programs() -> Vec<super::GuestProgram> { Vec::new() }
-pub fn launch_program(_id: &str) -> Result<(), String> { Err("not supported".into()) }
-pub fn window_icon(_id: u64, _size: u32) -> Option<Vec<u8>> { None }
-pub fn program_icon(_id: &str, _size: u32) -> Option<Vec<u8>> { None }
+pub fn programs_available() -> bool { super::linux_desktop::programs_available() }
+pub fn list_programs() -> Vec<super::GuestProgram> { super::linux_desktop::list_programs() }
+pub fn launch_program(id: &str) -> Result<(), String> { super::linux_desktop::launch_program(id) }
+pub fn window_icon(id: u64, size: u32) -> Option<Vec<u8>> { super::linux_x11::window_icon(id, size) }
+pub fn program_icon(id: &str, size: u32) -> Option<Vec<u8>> { super::linux_desktop::program_icon(id, size) }
 
-// MARK: Opening shared documents (not offered on this system)
+// MARK: Opening shared documents
 
-pub fn documents_available() -> bool { false }
-pub fn program_info(_id: &str) -> super::ProgramInfo { super::ProgramInfo::default() }
-pub fn open_documents(_program: &str, _documents: &[String]) -> Result<(), (u32, String)> {
-    Err((link_proto::document_status::NOT_SUPPORTED, "this guest cannot open Mac documents".into()))
+pub fn documents_available() -> bool { programs_available() && shared_folders_available() }
+pub fn program_info(id: &str) -> super::ProgramInfo { super::linux_desktop::program_info(id) }
+pub fn open_documents(program: &str, documents: &[String]) -> Result<(), (u32, String)> {
+    super::linux_desktop::open_documents(program, documents)
 }
 pub fn run_requests() {}
 
@@ -349,13 +358,67 @@ pub fn open_to_everyone(dir: &std::path::Path) {
 
 pub fn pid_alive(pid: u32) -> bool { std::path::Path::new(&format!("/proc/{pid}")).exists() }
 
-// MARK: Files dropped from the Mac (Windows only for now)
+// MARK: Files dropped from the Mac, and files sent to it
 
-pub fn file_drop_available() -> bool { false }
-pub fn drop_target_folder(_x: i32, _y: i32) -> Option<std::path::PathBuf> { None }
-pub fn fallback_drop_folder() -> Option<std::path::PathBuf> { None }
-pub fn selected_files_at(_x: i32, _y: i32) -> Result<Vec<String>, String> { Err("Dragging files out works with Windows guests.".into()) }
+/// Needs the shares' server on the Mac (reached through the guest's network), a root agent that can write
+/// as the user, and an X session to find the folder under the pointer in.
+pub fn file_drop_available() -> bool { (unsafe { libc::geteuid() }) == 0 && super::linux_x11::windows_available() }
+pub fn drop_target_folder(x: i32, y: i32) -> Option<std::path::PathBuf> { super::linux_x11::drop_target_folder(x, y) }
+pub fn fallback_drop_folder() -> Option<std::path::PathBuf> { super::linux_x11::fallback_drop_folder() }
+pub fn act_as_session_user() { super::linux_x11::act_as_session_user() }
+pub fn selected_files_at(x: i32, y: i32) -> Result<Vec<String>, String> { super::linux_x11::selected_files_at(x, y) }
 pub fn agent_data_dir() -> std::path::PathBuf { std::path::PathBuf::from("/var/lib/tandem") }
-pub fn message_box(title: &str, text: &str) { eprintln!("{title}: {text}"); }
-pub fn install_send_to() {}
+
+/// While the files of a drag-out are read through the clipboard, the clipboard is not forwarded to the Mac.
+static CLIPBOARD_PAUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+pub(crate) fn set_clipboard_paused(paused: bool) { CLIPBOARD_PAUSED.store(paused, std::sync::atomic::Ordering::SeqCst) }
+
+/// Shows a message to the person at the desktop; the agent runs "Send to Mac" as that person, so the
+/// session's display is in its environment.
+pub fn message_box(title: &str, text: &str) {
+    eprintln!("{title}: {text}");
+    for (tool, args) in [("zenity", vec!["--error", "--no-markup", "--title", title, "--text", text]),
+                         ("kdialog", vec!["--title", title, "--error", text]),
+                         ("notify-send", vec![title, text]),
+                         ("xmessage", vec!["-center", text])] {
+        if have(tool) && Command::new(tool).args(&args).status().map(|s| s.success()).unwrap_or(false) { return; }
+    }
+}
+
+/// Adds "Send to Mac (Tandem)" to the file managers of every person's account: a script for the
+/// Nautilus and Caja Scripts menus, an action for Nemo, Thunar and PCManFM.
+pub fn install_send_to() {
+    use std::os::unix::fs::{chown, PermissionsExt};
+    if (unsafe { libc::geteuid() }) != 0 { return; }
+    let agent = std::env::current_exe().ok().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|| "/usr/local/bin/tandem-agent".into());
+    let accounts = super::linux_text::parse_passwd(&std::fs::read_to_string("/etc/passwd").unwrap_or_default());
+    for account in accounts.iter().filter(|a| super::linux_text::is_person(a, a.home.is_dir())) {
+        let write = |path: std::path::PathBuf, content: &str, executable: bool| {
+            if std::fs::read_to_string(&path).map(|old| old == content).unwrap_or(false) { return; }
+            // Folders made on the way belong to the person too.
+            let mut made = Vec::new();
+            let mut dir = path.parent().map(std::path::Path::to_path_buf);
+            while let Some(d) = dir.filter(|d| !d.exists() && d.starts_with(&account.home)) { made.push(d.clone()); dir = d.parent().map(std::path::Path::to_path_buf); }
+            if std::fs::create_dir_all(path.parent().unwrap_or(&account.home)).is_err() { return; }
+            for d in &made { let _ = chown(d, Some(account.uid), Some(account.gid)); }
+            if std::fs::write(&path, content).is_err() { return; }
+            let _ = chown(&path, Some(account.uid), Some(account.gid));
+            if executable { let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)); }
+        };
+        let name = super::linux_text::SEND_TO_NAME;
+        if have("nautilus") { write(account.home.join(".local/share/nautilus/scripts").join(name), &super::linux_text::send_to_script(&agent), true); }
+        if have("caja") { write(account.home.join(".config/caja/scripts").join(name), &super::linux_text::send_to_script(&agent), true); }
+        if have("nemo") { write(account.home.join(".local/share/nemo/actions/tandem-send-to-mac.nemo_action"), &super::linux_text::nemo_action(&agent), false); }
+        if have("pcmanfm") || have("pcmanfm-qt") {
+            write(account.home.join(".local/share/file-manager/actions/tandem-send-to-mac.desktop"), &super::linux_text::libfm_action(&agent), false);
+        }
+        if have("thunar") {
+            let path = account.home.join(".config/Thunar/uca.xml");
+            let existing = std::fs::read_to_string(&path).ok();
+            if let Some(merged) = super::linux_text::merge_thunar_uca(existing.as_deref(), &agent) { write(path, &merged, false); }
+        }
+    }
+}
+
+/// Nothing to refresh: a file manager lists a folder's files by itself.
 pub fn folder_changed(_folder: &std::path::Path) {}

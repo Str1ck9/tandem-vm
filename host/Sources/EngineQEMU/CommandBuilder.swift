@@ -68,6 +68,51 @@ public enum QEMUCommandBuilder {
     /// The display backend of a 3D VM: GL rendering with no window of its own, read back for VNC.
     static func display3D(es: Bool) -> String { es ? "egl-headless,gl=es" : "egl-headless,gl=core" }
 
+    /// The hub's ports: the adapter plugs into `nic0`, the backend (`net0`) into `hub0be`.
+    public static let hubAdapterPort = "nic0"
+    public static let hubBackendPort = "hub0be"
+
+    /// The shared (user-mode) backend of a VM, described once for the command line and for a backend swapped
+    /// in while the VM runs.
+    public struct UserNetdev: Equatable {
+        public var restrict: Bool
+        public var guestForwards: [String]
+        public var hostForwards: [String]
+        /// The `-netdev` value.
+        public var option: String {
+            var s = "user,id=net0"
+            if restrict { s += ",restrict=on" }
+            for f in guestForwards { s += ",guestfwd=\(f)" }
+            for f in hostForwards { s += ",hostfwd=\(f)" }
+            return s
+        }
+    }
+
+    public static func userNetdev(network: NetworkConfig, policy: SharingPolicy, hostServicePort: Int?,
+                                  serviceBackends: [Int: Int]) -> UserNetdev {
+        var n = UserNetdev(restrict: false, guestForwards: [], hostForwards: [])
+        if !policy.network.outbound {
+            // No network access: restrict=on drops everything the guest sends, to the Mac and beyond.
+            // The one thing left open is the path to the Mac folders shared with it.
+            n.restrict = true
+            if let port = hostServicePort, port > 0 { n.guestForwards.append("tcp:10.0.2.2:\(port)-cmd:/usr/bin/nc 127.0.0.1 \(port)") }
+        }
+        for f in network.portForwards { n.hostForwards.append("tcp:127.0.0.1:\(f.hostPort)-:\(f.guestPort)") }
+        // Published services: user-mode networking has no way in from the Mac, so each guest port gets a
+        // private loopback port here, and the service relay (Sharing/ServicePublisher) listens in front of it.
+        // Only where the sharing profile allows connections into the VM, whatever the caller passed.
+        for (guestPort, backend) in serviceBackends.sorted(by: { $0.key < $1.key }) where policy.allowsInboundServices {
+            n.hostForwards.append("tcp:127.0.0.1:\(backend)-:\(guestPort)")
+        }
+        return n
+    }
+
+    /// The bridged backend: a datagram socket QEMU binds, talking to the network helper's end of the bridge.
+    public static func bridgeNetdevOption(socket: String, helperSocket: String) -> String {
+        let v = QEMUOption.value
+        return "dgram,id=net0,local.type=unix,local.path=\(v(socket)),remote.type=unix,remote.path=\(v(helperSocket))"
+    }
+
     public static func arguments(bundle: VMBundle, toolchain: QEMUToolchain, paths: QEMURunPaths,
                                  display: QEMUDisplayMode, guestToolsISO: URL? = nil,
                                  bridgeSocket: String? = nil, incoming: String? = nil,
@@ -149,28 +194,18 @@ public enum QEMUCommandBuilder {
         switch c.network.mode {
         case .nat:
             // User-mode NAT: no entitlement or root needed, but no inbound connections except forwards.
-            var netdev = "user,id=net0"
-            if !policy.network.outbound {
-                // No network access: restrict=on drops everything the guest sends, to the Mac and beyond.
-                // The one thing left open is the path to the Mac folders shared with it.
-                netdev += ",restrict=on"
-                if let port = hostServicePort, port > 0 { netdev += ",guestfwd=tcp:10.0.2.2:\(port)-cmd:/usr/bin/nc 127.0.0.1 \(port)" }
-            }
-            for f in c.network.portForwards { netdev += ",hostfwd=tcp:127.0.0.1:\(f.hostPort)-:\(f.guestPort)" }
-            // Published services: user-mode networking has no way in from the Mac, so each guest port gets a
-            // private loopback port here, and the service relay (Sharing/ServicePublisher) listens in front of it.
-            // Only where the sharing profile allows connections into the VM, whatever the caller passed.
-            for (guestPort, backend) in serviceBackends.sorted(by: { $0.key < $1.key }) where policy.allowsInboundServices {
-                netdev += ",hostfwd=tcp:127.0.0.1:\(backend)-:\(guestPort)"
-            }
-            a += ["-netdev", netdev]
+            a += ["-netdev", userNetdev(network: c.network, policy: policy, hostServicePort: hostServicePort, serviceBackends: serviceBackends).option]
         case .bridged:
             guard let bridgeSocket else {
                 throw VMError("Bridged networking needs the Tandem network helper.", detail: "Install it once with: sudo scripts/install-net-helper.sh")
             }
-            a += ["-netdev", "dgram,id=net0,local.type=unix,local.path=\(v(paths.network)),remote.type=unix,remote.path=\(v(bridgeSocket))"]
+            a += ["-netdev", bridgeNetdevOption(socket: paths.network, helperSocket: bridgeSocket)]
         }
-        a += ["-device", "virtio-net-pci,netdev=net0,mac=\(c.network.mac)\(boot.network)"]
+        // The adapter and its backend meet in a hub (a port each), so that the backend can be swapped while the
+        // VM runs: `netdev_del` and `netdev_add` of `net0` and its port, with the adapter untouched
+        // (QEMUEngine.applyNetwork). Without the hub an adapter is tied to its backend for good.
+        a += ["-netdev", "hubport,id=\(hubBackendPort),hubid=0,netdev=net0", "-netdev", "hubport,id=\(hubAdapterPort),hubid=0"]
+        a += ["-device", "virtio-net-pci,netdev=\(hubAdapterPort),mac=\(c.network.mac)\(boot.network)"]
         if c.network.mode == .bridged, let port = hostServicePort, port > 0 {
             // A bridged guest cannot reach the Mac's loopback address, where the shared folders are served.
             // A second, isolated adapter gives it that one destination and nothing else: restrict=on blocks

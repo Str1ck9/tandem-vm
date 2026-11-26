@@ -106,6 +106,9 @@ public struct NetworkConfig: Codable, Equatable, Sendable {
     public var portForwards: [PortForward]
     /// The Mac interface a bridged VM joins, for example `en0`. Nil means the helper's first one.
     public var bridgedInterface: String? = nil
+    /// The virtual network cable. False unplugs it: the guest sees the link go down. Nil means plugged in.
+    public var cableConnected: Bool? = nil
+    public var cableIsConnected: Bool { cableConnected ?? true }
 
     public init(mode: NetworkMode = .nat, mac: String = NetworkConfig.randomMAC(), portForwards: [PortForward] = []) {
         self.mode = mode; self.mac = mac; self.portForwards = portForwards
@@ -131,6 +134,14 @@ public struct DisplayConfig: Codable, Equatable, Sendable {
     public var accelerated3D: Bool?
     /// Windows guests with 3D on: the 3D display driver Tandem installed in the guest. Nil until then.
     public var windows3DDriver: Windows3DDriverState?
+    /// Windows guests: when the guest's screen has clearly more pixels than the window has points (a Retina
+    /// sized screen), give Windows the display scale that makes its interface readable. Nil means on.
+    public var matchesWindowsScale: Bool?
+    public var matchWindowsScale: Bool { matchesWindowsScale ?? true }
+    /// The guest's screen has as many pixels as the Mac window (points times the screen's backing scale)
+    /// instead of one pixel per point, so text is sharp on a Retina display. Nil means off.
+    public var retinaResolution: Bool?
+    public var useRetinaResolution: Bool { retinaResolution == true }
     public init(width: Int = 1440, height: Int = 900, dynamicResize: Bool = true, virtioGPU: Bool? = nil, accelerated3D: Bool? = nil) {
         self.width = width; self.height = height; self.dynamicResize = dynamicResize; self.virtioGPU = virtioGPU
         self.accelerated3D = accelerated3D

@@ -29,6 +29,7 @@ enum SelfTest {
 
     static func snapshotWindows(tag: String) {
         guard let directory else { return }
+        SelfTestAccessibility.audit(tag: tag)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         for (index, window) in NSApp.windows.enumerated() where window.isVisible {
             guard let view = window.contentView?.superview ?? window.contentView,
@@ -286,6 +287,8 @@ enum SelfTest {
             if let name = env["TANDEM_SNAPSHOT_DRAG"] { await dragTrial(model, name: name) }
             if let name = env["TANDEM_SNAPSHOT_SEAMLESS_EXTRAS"] { await seamlessExtrasTrial(model, name: name) }
             if let name = env["TANDEM_SNAPSHOT_WIN3D"] { await windows3DTrial(model, vm: name) }
+            if let name = env["TANDEM_SNAPSHOT_WIN3D_DISPLAY"] { await windows3DDisplayTrial(model, vm: name) }
+            if let name = env["TANDEM_SNAPSHOT_WIN3D_RETINA"] { await windowsRetinaTrial(model, vm: name) }
             if let spec = env["TANDEM_SNAPSHOT_PACKAGING"] { await SelfTestPackaging.run(model, spec: spec) }
             if let spec = env["TANDEM_SNAPSHOT_UPDATE"] { await SelfTestUpdate.run(model, spec: spec) }
             snapshotWindows(tag: "4-end")

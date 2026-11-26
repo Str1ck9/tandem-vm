@@ -35,6 +35,8 @@ public enum ControlOp: String, CaseIterable, Sendable {
     case status, list, info, ip
     case start, stop, suspend, resume, pause, restart, reset
     case snapshotList = "snapshot.list", snapshotTake = "snapshot.take", snapshotRevert = "snapshot.revert", snapshotDelete = "snapshot.delete"
+    /// Marks (or unmarks) the snapshot AI tools may revert to. The person's decision; never an AI tool's.
+    case snapshotBaseline = "snapshot.baseline"
     case screenshot
     case sharing, share, unshare
     case services

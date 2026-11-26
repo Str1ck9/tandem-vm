@@ -35,7 +35,7 @@ struct StartupPane: View {
     @ObservedObject var session: VMSession
 
     private var canSeamless: Bool {
-        config.guestOS == .windows11arm && config.engine == .qemu && !VMSession.seamlessBlockedBy3D(config)
+        config.supportsSeamless(linuxEnabled: LinuxIntegration.seamlessEnabled) && !VMSession.seamlessBlockedBy3D(config)
     }
 
     var body: some View {
@@ -63,7 +63,7 @@ struct StartupPane: View {
                 } else if VMSession.seamlessBlockedBy3D(config) {
                     paneNote(VMSession.seamless3DNote)
                 } else if !canSeamless {
-                    paneNote("Seamless Mode is available for Windows virtual machines with the guest tools.")
+                    paneNote("Seamless Mode is available for Windows virtual machines with the guest tools, and for Linux ones when it is turned on in Tandem’s Settings > Advanced.")
                 }
             }
             Section("Stopping") {
@@ -108,22 +108,22 @@ struct ApplicationsPane: View {
     var body: some View {
         let behavior = $config.behavior
         Form {
-            if config.guestOS == .windows11arm {
+            if config.supportsGuestPrograms {
                 Section("Dock") {
-                    Picker("Windows programs in the Dock", selection: behavior.dockTiles) {
+                    Picker("\(config.guestSystemWord) programs in the Dock", selection: behavior.dockTiles) {
                         Text("As set in Tandem’s Settings (\(GuestAppTiles.isEnabled ? "shown" : "not shown"))").tag(Bool?.none)
                         Text("Show").tag(Bool?.some(true))
                         Text("Do not show").tag(Bool?.some(false))
                     }
-                    paneNote("In Seamless Mode every Windows program with a window gets its own icon in the Dock and in Command-Tab. Choosing it brings the program’s window forward.")
+                    paneNote("In Seamless Mode every \(config.guestSystemWord) program with a window gets its own icon in the Dock and in Command-Tab. Choosing it brings the program’s window forward.")
                 }
-                Section("Windows programs") {
+                Section("\(config.guestSystemWord) programs") {
                     if session.guestPrograms.isEmpty {
                         LabeledContent("Programs found", value: session.state.isActive ? "Waiting for the guest tools" : "Start the virtual machine to list them")
                     } else {
                         LabeledContent("Programs found", value: "\(session.guestPrograms.count)")
                     }
-                    paneNote("Start one from the Dock menu or the menu bar icon: “Windows Programs” under this virtual machine.")
+                    paneNote("Start one from the Dock menu or the menu bar icon: “\(config.guestSystemWord) Programs” under this virtual machine.")
                 }
                 Section("On the Mac") {
                     LabeledContent("Programs kept on the Mac", value: "\(session.macLaunchers.count)")
@@ -132,7 +132,7 @@ struct ApplicationsPane: View {
                 }
             } else {
                 Section {
-                    paneNote("Showing a virtual machine’s programs on the Mac is available for Windows virtual machines. This one runs \(config.guestOS.label).")
+                    paneNote("Showing a virtual machine’s programs on the Mac is available for Windows and Linux (QEMU) virtual machines. This one runs \(config.guestOS.label).")
                 }
             }
         }
@@ -154,7 +154,7 @@ struct FullScreenPane: View {
                 Toggle("Start in full screen", isOn: Binding(
                     get: { behavior.wrappedValue.startupView == .fullScreen },
                     set: { behavior.wrappedValue.startupView = $0 ? .fullScreen : .window }))
-                Toggle("Keep the toolbar visible in full screen", isOn: behavior.toolbarAlwaysVisibleInFullScreen)
+                Toggle("Keep the toolbar visible in full screen", isOn: behavior.toolbarAlwaysVisibleInFullScreen).accessibilityLabel("Keep the toolbar visible in full screen")
                 paneNote("Without this the toolbar and the Mac’s menu bar appear when the pointer reaches the top of the screen. Enter and leave full screen with the green button in the window’s title bar.")
             }
             Section("Picture") {
@@ -171,11 +171,11 @@ struct FullScreenPane: View {
                 }
             }
             Section("Seamless Mode") {
-                Toggle("Retina resolution", isOn: behavior.seamlessRetina).disabled(!drawsOwnScreen || config.guestOS != .windows11arm)
+                Toggle("Retina resolution", isOn: behavior.seamlessRetina).disabled(!drawsOwnScreen || config.guestOS != .windows11arm).accessibilityLabel("Retina resolution")
                 paneNote("Gives Windows one pixel per screen pixel and sets its scale to 200%, so text is sharp and keeps its size. Windows applies the scale at once; a few older programs keep their old size until they are reopened. Off uses half the pixels, which is lighter on the Mac.")
             }
             Section("Displays") {
-                Toggle("Use all displays in full screen", isOn: .constant(false)).disabled(true)
+                Toggle("Use all displays in full screen", isOn: .constant(false)).disabled(true).accessibilityLabel("Use all displays in full screen")
                 paneNote("Not available: a virtual machine has one screen for now, on the display its window is on.")
             }
         }
@@ -294,11 +294,11 @@ struct InputPane: View {
                     } else {
                         paneNote("Command-C in the virtual machine is \(config.guestOS == .windows11arm ? "Windows" : "Super")-C; copy with Control-C as on a PC.")
                     }
-                    Toggle("Send Command shortcuts to the virtual machine", isOn: behavior.commandShortcutsToGuest)
+                    Toggle("Send Command shortcuts to the virtual machine", isOn: behavior.commandShortcutsToGuest).accessibilityLabel("Send Command shortcuts to the virtual machine")
                     paneNote("Off: while the virtual machine has the keyboard, Command shortcuts go to Tandem’s own menus (Command-Q quits Tandem). Shortcuts macOS keeps for itself, such as Command-Tab and Command-Space, never reach the virtual machine; send Control-Alt-Delete and others from Devices > Keyboard.")
                 }
                 Section("Mouse") {
-                    Toggle("Reverse the scrolling direction", isOn: behavior.invertScrolling)
+                    Toggle("Reverse the scrolling direction", isOn: behavior.invertScrolling).accessibilityLabel("Reverse the scrolling direction")
                     paneNote("The virtual machine scrolls the way the Mac does. Turn this on if it should scroll the other way.")
                 }
             } else {
@@ -321,8 +321,8 @@ struct SoundPane: View {
         let sound = $config.sound
         Form {
             Section("Sound") {
-                Toggle("Play the virtual machine’s sound on the Mac", isOn: sound.output)
-                Toggle("Let the virtual machine use the Mac’s microphone", isOn: sound.microphone)
+                Toggle("Play the virtual machine’s sound on the Mac", isOn: sound.output).accessibilityLabel("Play the virtual machine’s sound on the Mac")
+                Toggle("Let the virtual machine use the Mac’s microphone", isOn: sound.microphone).accessibilityLabel("Let the virtual machine use the Mac’s microphone")
                 if sound.wrappedValue.microphone {
                     paneNote("macOS asks for permission to use the microphone the first time the virtual machine starts. If it was refused, allow Tandem under System Settings > Privacy & Security > Microphone.")
                 }
@@ -332,7 +332,7 @@ struct SoundPane: View {
             }
             .disabled(locked)
             Section("Camera") {
-                Toggle("Share the Mac’s camera", isOn: .constant(false)).disabled(true)
+                Toggle("Share the Mac’s camera", isOn: .constant(false)).disabled(true).accessibilityLabel("Share the Mac’s camera")
                 paneNote("Not available: the virtual machine has no camera device yet.")
             }
         }
@@ -346,7 +346,7 @@ struct PrintersPane: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Share the Mac’s printers with the virtual machine", isOn: .constant(false)).disabled(true)
+                Toggle("Share the Mac’s printers with the virtual machine", isOn: .constant(false)).disabled(true).accessibilityLabel("Share the Mac’s printers with the virtual machine")
                 paneNote("Not available: there is no path yet from the virtual machine to the Mac’s printers. Until there is, print to a PDF file in a shared folder and print that from the Mac, or add a network printer inside the virtual machine.")
             }
         }
@@ -423,7 +423,7 @@ struct BootPane: View {
                     }
                 }
                 Section {
-                    Toggle("Show the boot menu at start-up", isOn: $config.boot.menu)
+                    Toggle("Show the boot menu at start-up", isOn: $config.boot.menu).accessibilityLabel("Show the boot menu at start-up")
                     paneNote("The firmware waits five seconds at start-up. Press Escape in that time to choose a device or open the firmware’s settings.")
                 }
             } else {

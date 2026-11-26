@@ -70,6 +70,8 @@ final class VMSession: ObservableObject, Identifiable {
     @Published var sharingPolicy: SharingPolicy
     /// What a change of sharing could not do until the VM is restarted, for the settings panel.
     @Published var sharingNote: String?
+    /// What the last network change did to this running VM (SessionNetwork.swift).
+    @Published var networkApplyResult: NetworkApplyResult?
     var sharingRuntime: SharingRuntime?
     let sharingBox = SharingPolicyBox()
     /// Guest services published on the Mac while this VM runs (Sharing/ServicePublisher).
@@ -112,6 +114,7 @@ final class VMSession: ObservableObject, Identifiable {
             Task { @MainActor in
                 self?.displayReport = report
                 self?.applyConfiguredDisplaySizeIfNeeded(report)
+                self?.adjustGuestScale()
             }
         }
         link.onDisconnect = { [weak self] in Task { @MainActor in self?.agent = nil; self?.exitSeamless(); self?.forgetIconRequests() } }
@@ -144,11 +147,11 @@ final class VMSession: ObservableObject, Identifiable {
         if let provisioning {
             return provisioning.phase + (provisioning.fraction.map { " \(Int(($0 * 100).rounded(.down)))%" } ?? "…")
         }
-        if setupInterrupted { return "Setup did not finish" }
+        if setupInterrupted { return String(localized: "Setup did not finish") }
         if let busy { return busy }
         if let launchStatus { return launchStatus }
         if isInstalling { return "Installing \(config.guestOS.label)…" }
-        return (state == .stopped && isSuspended) ? "Suspended" : state.label
+        return (state == .stopped && isSuspended) ? String(localized: "Suspended") : state.label
     }
     /// An unattended install is under way: Setup is running and the guest tools have not answered yet.
     var isInstalling: Bool { state == .running && config.install.unattended && config.install.state == .installing }
@@ -408,7 +411,7 @@ final class VMSession: ObservableObject, Identifiable {
     var isSeamless: Bool { seamless != nil }
     /// Needs the guest's screen (QEMU engine) and guest tools that can list windows (capability bit 6).
     var canSeamless: Bool {
-        busy == nil && state == .running && screen != nil && (agent?.capabilities ?? 0) & 64 != 0 && !seamlessBlockedBy3D
+        busy == nil && state == .running && screen != nil && (agent?.capabilities ?? 0) & 64 != 0 && !seamlessBlockedBy3D && (config.guestOS != .linux || LinuxIntegration.seamlessEnabled)
     }
     /// Windows with 3D acceleration: its 3D display driver offers only a fixed table of screen sizes, so the
     /// guest's desktop cannot match the Mac screen and windows could not be placed exactly on it.
@@ -430,6 +433,11 @@ final class VMSession: ObservableObject, Identifiable {
     func seamlessPlan() -> GuestWindowLayout.DesktopPlan { SeamlessController.desktopPlan(retina: seamlessRetinaAllowed) }
     /// True while the guest's scale is raised for Seamless Mode; leaving the mode puts it back.
     private var scaledForSeamless = false
+    /// The window's size in points the last time it changed, and the scale (percent) Tandem asked Windows for
+    /// to match a Retina-sized screen (nil: none asked for). See `adjustGuestScale`.
+    var viewPointSize: CGSize?
+    var retinaScaleRequested: Int?
+    var retinaScaleTask: Task<Void, Never>?
     /// True while the guest's work area is limited to the main display; leaving the mode puts it back.
     private var workAreaForSeamless = false
 
@@ -437,7 +445,7 @@ final class VMSession: ObservableObject, Identifiable {
     /// the work area for maximised windows. The scale and work area go after the resolution change.
     private func applySeamlessPlan(_ plan: GuestWindowLayout.DesktopPlan, for controller: SeamlessController) {
         controller.plan = plan
-        windowResized(to: plan.pixels)
+        windowResized(to: plan.pixels, inPixels: true)
         let scale = plan.scale
         let spansDisplays = plan.mainWorkArea.size != plan.pixels
         let canSetWorkArea = (agent?.capabilities ?? 0) & (1 << 17) != 0
@@ -506,8 +514,11 @@ final class VMSession: ObservableObject, Identifiable {
         tiles.stop()
         if scaledForSeamless { link.setDisplayScale(0); scaledForSeamless = false }
         if workAreaForSeamless { link.setWorkArea(nil); workAreaForSeamless = false }
-        if let size = sizeBeforeSeamless { windowResized(to: size) }
+        if let size = sizeBeforeSeamless { windowResized(to: size, inPixels: true) }
         sizeBeforeSeamless = nil
+        // Leaving the mode put the guest's own scale back; a Retina-sized screen needs its scale again.
+        retinaScaleRequested = nil
+        adjustGuestScale(after: 3)
         if reopenWindow, state.isActive { AppDelegate.shared?.show("vm", id) }
     }
 
@@ -847,11 +858,18 @@ final class VMSession: ObservableObject, Identifiable {
     /// The guest display follows the window: once the window has stopped changing size, the display
     /// server is asked for the new size, then the guest agent switches the guest to it. Needs the agent
     /// (capability bit 2) and, on Windows, the display driver.
-    func windowResized(to size: CGSize) {
+    ///
+    /// `size` is the window's size in points. With "Use Retina resolution" the guest gets that many pixels
+    /// times the screen's backing scale, and Windows' display scale is raised to match (`adjustGuestScale`).
+    /// `inPixels` is for callers that already know the guest's size in pixels (Seamless Mode).
+    func windowResized(to size: CGSize, inPixels: Bool = false) {
+        if seamless == nil && !inPixels { viewPointSize = size }
         guard config.display.dynamicResize, let screen, let agent, agent.capabilities & 4 != 0, state == .running else { return }
         if config.guestOS == .windows11arm && config.display.virtioGPU != true { return }
+        let factor = !inPixels && config.display.useRetinaResolution ? Self.windowBackingScale : 1
         // Even numbers, within what the display device accepts.
-        let width = min(max(Int(size.width) & ~1, 800), 5120), height = min(max(Int(size.height) & ~1, 600), 2880)
+        let (width, height) = GuestDisplayScale.guestPixels(forPoints: Double(size.width), Double(size.height), factor: Double(factor))
+        if !inPixels { adjustGuestScale(after: 2.4) }
         resizeTask?.cancel()
         resizeTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 600_000_000)
@@ -918,6 +936,15 @@ final class VMSession: ObservableObject, Identifiable {
     var snapshotParents: [UUID: UUID?] { SnapshotStore(bundle: bundle).parents() }
     var snapshotHead: UUID? { SnapshotStore(bundle: bundle).currentParent() }
 
+    /// The snapshot marked as the baseline: the only one an AI tool may go back to (see `AITier`).
+    var snapshotBaseline: UUID? { SnapshotStore(bundle: bundle).baseline() }
+
+    /// Marks a snapshot as the baseline; nil takes the mark away.
+    func setSnapshotBaseline(_ snapshot: VMSnapshot?) throws {
+        try SnapshotStore(bundle: bundle).setBaseline(snapshot?.id)
+        objectWillChange.send()
+    }
+
     func snapshotThumbnail(_ snapshot: VMSnapshot) -> NSImage? {
         NSImage(contentsOf: SnapshotStore(bundle: bundle).thumbnailURL(snapshot.id))
     }
@@ -959,7 +986,7 @@ final class VMSession: ObservableObject, Identifiable {
         if !wasBusy { busy = "Going back to snapshot…" }
         defer { if !wasBusy { busy = nil } }
         // Off the main actor, under the VM's lease: nothing else may run or change the VM meanwhile.
-        try await BundleWork.run(bundle, purpose: "going back to a snapshot") { try store.revert(to: id) }
+        try await BundleWork.run(bundle, purpose: "going back to a snapshot") { try store.revertKeepingAccess(to: id) }
         bundle = try VMBundle.load(from: bundle.url)
         refreshSharingPolicy()
         refreshSuspended()

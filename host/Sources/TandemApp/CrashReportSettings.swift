@@ -9,8 +9,9 @@ struct CrashReportSettings: View {
 
     var body: some View {
         Section("Crash reports") {
-            Toggle("Offer to send crash reports", isOn: $offer)
+            Toggle("Offer to send crash reports", isOn: $offer).accessibilityLabel("Offer to send crash reports")
             TextField("Report page:", text: $repository, prompt: Text(CrashReports.defaultRepository))
+                .accessibilityLabel("Report page address")
             Text("After a crash, Tandem asks once whether to send a report. If you agree, it collects its diagnostics, shows the file in Finder and opens a pre-filled GitHub issue or e-mail for you to attach it to. Tandem never sends anything by itself.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }

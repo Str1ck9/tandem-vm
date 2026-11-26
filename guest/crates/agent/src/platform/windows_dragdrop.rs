@@ -111,6 +111,9 @@ pub fn folder_changed(folder: &std::path::Path) {
 /// Where files go when nothing under the pointer holds files.
 pub fn fallback_drop_folder() -> Option<PathBuf> { known_folder(&FOLDERID_Downloads) }
 
+/// Only Linux guests switch the file-system identity of the copying thread to the signed-in user.
+pub fn act_as_session_user() {}
+
 pub fn agent_data_dir() -> PathBuf {
     PathBuf::from(std::env::var("ProgramData").unwrap_or_else(|_| r"C:\ProgramData".into())).join("Tandem")
 }

@@ -168,9 +168,10 @@ struct InstallationAssistant: View {
     private func tile(_ title: String, symbol: String, enabled: Bool, note: String = "Not available yet", action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 10) {
-                Image(systemName: symbol).font(.system(size: 34, weight: .light))
-                Text(title).font(.callout).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                if !enabled { Text(note).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center) }
+                Image(systemName: symbol).font(.system(size: 34, weight: .light)).accessibilityHidden(true)
+                // The titles of downloadable systems come from the providers as plain text; they are looked up too.
+                Text(LocalizedStringKey(title)).font(.callout).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                if !enabled { Text(LocalizedStringKey(note)).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center) }
             }
             .frame(maxWidth: .infinity, minHeight: 104)
             .padding(10)
@@ -284,7 +285,7 @@ struct InstallationAssistant: View {
         VStack(spacing: 16) {
             Text("Install from an Image File").font(.system(size: 22, weight: .light))
             VStack(spacing: 8) {
-                Image(systemName: isoPath.isEmpty ? "opticaldisc" : "opticaldisc.fill").font(.system(size: 44, weight: .light))
+                Image(systemName: isoPath.isEmpty ? "opticaldisc" : "opticaldisc.fill").font(.system(size: 44, weight: .light)).accessibilityHidden(true)
                 if isoPath.isEmpty {
                     Text("Drag the image file here.")
                     Text("Tandem supports .iso files for ARM64 (Apple silicon) systems.").font(.callout).foregroundStyle(.secondary)
@@ -312,7 +313,7 @@ struct InstallationAssistant: View {
                 }
                 return true
             }
-            Toggle("Continue without a source", isOn: $withoutSource)
+            Toggle("Continue without a source", isOn: $withoutSource).accessibilityLabel("Continue without a source")
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text("Without a source the virtual machine is created empty; attach an installer later under Configure > Hardware > CD/DVD.")
                 .font(.callout).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
@@ -365,14 +366,14 @@ struct InstallationAssistant: View {
                     CompatibilityBlockers(report: compatibility)
                 }
                 if canInstallAutomatically {
-                    Toggle("Install Windows automatically", isOn: $automatic)
+                    Toggle("Install Windows automatically", isOn: $automatic).accessibilityLabel("Install Windows automatically")
                     if automatic {
                         Picker("Edition:", selection: $edition) {
                             ForEach(WindowsUnattendOptions.genericKeys.keys.sorted().reversed(), id: \.self) { Text($0).tag($0) }
                         }
                         TextField("Account name:", text: $userName)
                         SecureField("Password:", text: $password, prompt: Text("Optional"))
-                        Toggle("Sign in automatically", isOn: $autoLogin)
+                        Toggle("Sign in automatically", isOn: $autoLogin).accessibilityLabel("Sign in automatically")
                         Text("Windows is set up without questions: the disk, this account, drivers and Tandem’s guest tools. It takes about ten minutes. The password is kept on a setup disc inside the virtual machine until the installation has finished, then that disc is deleted.\(accountNote)")
                             .font(.callout).foregroundStyle(.secondary)
                     }
@@ -380,7 +381,7 @@ struct InstallationAssistant: View {
                 if let provider, provider.wantsAccount {
                     TextField("Account name:", text: $userName)
                     SecureField("Password:", text: $password, prompt: Text(provider.allowsEmptyPassword ? "Optional" : "Required"))
-                    Toggle("Sign in automatically", isOn: $autoLogin)
+                    Toggle("Sign in automatically", isOn: $autoLogin).accessibilityLabel("Sign in automatically")
                     Text("Tandem makes this account in the new system. The password is kept on a setup disc inside the virtual machine until its first start has finished, then that disc is deleted.\(accountNote)")
                         .font(.callout).foregroundStyle(.secondary)
                 }

@@ -82,6 +82,28 @@ public struct SnapshotStore: Sendable {
         return all.first?.id // before this was recorded: the newest
     }
 
+    private var baselineURL: URL { directory.appendingPathComponent("baseline.json") }
+    private struct Baseline: Codable { var id: UUID? }
+
+    /// The snapshot marked as this VM's baseline: the one state an AI tool may go back to when the VM has
+    /// one (see `AITier`). Nil when none is marked or the marked one is gone. Kept beside the snapshots, so
+    /// it is neither part of a snapshot nor changed by going back to one.
+    public func baseline(fileManager fm: FileManager = .default) -> UUID? {
+        guard let data = try? Data(contentsOf: baselineURL), let marked = try? JSONDecoder().decode(Baseline.self, from: data),
+              let id = marked.id else { return nil }
+        return list(fileManager: fm).contains { $0.id == id } ? id : nil
+    }
+
+    /// Marks a snapshot as the baseline, or with nil takes the mark away.
+    public func setBaseline(_ id: UUID?, fileManager fm: FileManager = .default) throws {
+        if let id, !list(fileManager: fm).contains(where: { $0.id == id }) {
+            throw VMError("That snapshot no longer exists.")
+        }
+        try fm.createDirectory(at: directory, withIntermediateDirectories: true)
+        if id == nil { try? fm.removeItem(at: baselineURL); return }
+        try JSONEncoder().encode(Baseline(id: id)).write(to: baselineURL, options: .atomic)
+    }
+
     private func setCurrentParent(_ id: UUID?, fileManager fm: FileManager) {
         try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
         try? JSONEncoder().encode(Head(parent: id)).write(to: headURL, options: .atomic)
@@ -300,6 +322,22 @@ public struct SnapshotStore: Sendable {
         try write(snapshot)
     }
 
+    /// Goes back to a snapshot but keeps who may use the VM as it is now: the AI level and who may run
+    /// commands belong to the VM, not to one of its states. Without this, going back to a snapshot taken at a
+    /// higher level would quietly raise what AI tools may do, and going back to a lower one would quietly
+    /// take it away.
+    public func revertKeepingAccess(to id: UUID) throws {
+        let kept = (try? VMBundle.load(from: bundleURL))?.config.sharing
+        try revert(to: id)
+        guard let kept, var restored = try? VMBundle.load(from: bundleURL) else { return }
+        var profile = restored.config.sharing
+        guard profile.aiTier != kept.aiTier || profile.commands != kept.commands else { return }
+        profile.aiTier = kept.aiTier
+        profile.commands = kept.commands
+        restored.config.sharing = profile
+        try restored.save()
+    }
+
     /// Deletes a snapshot. What followed it now follows what it followed.
     public func delete(_ id: UUID, fileManager fm: FileManager = .default) throws {
         let links = parents(fileManager: fm)
@@ -312,6 +350,7 @@ public struct SnapshotStore: Sendable {
             snapshot.parentRecorded = true
             try write(snapshot)
         }
+        if baseline(fileManager: fm) == id { try? setBaseline(nil, fileManager: fm) }
         try fm.removeItem(at: folder(id))
         setCurrentParent(head == id ? above : head, fileManager: fm)
     }

@@ -469,10 +469,11 @@ struct UpdateSettings: View {
 
     var body: some View {
         Section("Updates") {
-            Toggle("Check for updates automatically (daily)", isOn: $autoCheck)
-            Toggle("Download updates automatically", isOn: $autoDownload).disabled(!autoCheck)
+            Toggle("Check for updates automatically (daily)", isOn: $autoCheck).accessibilityLabel("Check for updates automatically (daily)")
+            Toggle("Download updates automatically", isOn: $autoDownload).disabled(!autoCheck).accessibilityLabel("Download updates automatically")
             LabeledContent("Update feed:") {
                 TextField("", text: $feed, prompt: Text(defaultFeed)).textFieldStyle(.roundedBorder)
+                    .accessibilityLabel("Update feed address")
             }
             if !feed.isEmpty && SoftwareUpdate.url(feed) == nil {
                 Text("Use an https:// address or a file path.").font(.callout).foregroundStyle(.red)

@@ -34,11 +34,12 @@ let package = Package(
         .executableTarget(name: "vmctl", dependencies: ["VMCore", "EngineVZ", "EngineQEMU", "GuestLink", "Provisioning", "Migration", "Sharing", "NetHelperClient"]),
         .executableTarget(name: "TandemApp", dependencies: ["VMCore", "EngineVZ", "EngineQEMU", "GuestLink", "Provisioning", "Migration", "Sharing", "NetHelperClient", "TandemControl", "Updater"]),
         // The control API's protocol, client and MCP server; no dependency on the engines.
-        .target(name: "TandemControl", dependencies: ["IdentityCore"]),
+        // It uses VMCore only for the per-VM AI levels (`AITier`), which the configuration also stores.
+        .target(name: "TandemControl", dependencies: ["IdentityCore", "VMCore"]),
         .executableTarget(name: "tandem", dependencies: ["TandemControl"]),
         // Seeded random input for the fuzz tests (Tests/FuzzSupport); not part of any product.
         .target(name: "FuzzSupport", path: "Tests/FuzzSupport"),
-        .testTarget(name: "TandemControlTests", dependencies: ["TandemControl", "FuzzSupport"]),
+        .testTarget(name: "TandemControlTests", dependencies: ["TandemControl", "VMCore", "FuzzSupport"]),
         .testTarget(name: "VMCoreTests", dependencies: ["VMCore", "FuzzSupport"]),
         .testTarget(name: "EngineQEMUTests", dependencies: ["EngineQEMU", "VMCore", "NetHelperClient"]),
         .testTarget(name: "EngineVZTests", dependencies: ["EngineVZ", "Provisioning", "VMCore"]),

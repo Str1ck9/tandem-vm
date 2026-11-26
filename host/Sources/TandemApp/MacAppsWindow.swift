@@ -27,10 +27,10 @@ struct MacAppsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Keep a Windows program on the Mac to pin it to the Dock, find it with Spotlight, and choose it under Open With in Finder. Opening it starts or resumes “\(session.config.name)” by itself.")
+            Text("Keep a \(session.config.guestSystemWord) program on the Mac to pin it to the Dock, find it with Spotlight, and choose it under Open With in Finder. Opening it starts or resumes “\(session.config.name)” by itself.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             if session.guestPrograms.isEmpty {
-                Text(session.state == .running ? "Waiting for Windows to list its programs…" : "Start “\(session.config.name)” to choose from its programs.")
+                Text(session.state == .running ? "Waiting for \(session.config.guestSystemWord) to list its programs…" : "Start “\(session.config.name)” to choose from its programs.")
                     .foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.vertical, 8)
             } else {
                 TextField("Search", text: $search).textFieldStyle(.roundedBorder)
@@ -38,7 +38,7 @@ struct MacAppsView: View {
             List {
                 ForEach(programs) { program in row(program) }
                 if !orphans.isEmpty {
-                    Section(session.guestPrograms.isEmpty ? "On the Mac" : "On the Mac, no longer in Windows") {
+                    Section(session.guestPrograms.isEmpty ? "On the Mac" : "On the Mac, no longer in \(session.config.guestSystemWord)") {
                         ForEach(orphans, id: \.id) { orphan in
                             HStack {
                                 Image(nsImage: NSWorkspace.shared.icon(forFile: orphan.url.path)).resizable().frame(width: 20, height: 20)
@@ -68,8 +68,8 @@ struct MacAppsView: View {
 
     private func row(_ program: GuestProgram) -> some View {
         HStack {
-            if let icon = session.image(session.icon(for: program), points: 20) { Image(nsImage: icon) }
-            else { Image(systemName: "app").frame(width: 20, height: 20) }
+            if let icon = session.image(session.icon(for: program), points: 20) { Image(nsImage: icon).accessibilityHidden(true) }
+            else { Image(systemName: "app").frame(width: 20, height: 20).accessibilityHidden(true) }
             Text(program.name).lineLimit(1)
             Spacer()
             if working.contains(program.id) { ProgressView().controlSize(.small) }
@@ -100,6 +100,6 @@ struct MacAppsWindow: View {
         MacAppsView(session: session)
             .padding(16)
             .frame(minWidth: 460, idealWidth: 520, minHeight: 420, idealHeight: 560)
-            .navigationTitle("Windows Applications on the Mac — \(session.config.name)")
+            .navigationTitle("\(session.config.guestSystemWord) Applications on the Mac — \(session.config.name)")
     }
 }

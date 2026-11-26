@@ -73,10 +73,10 @@ struct NetworkSettingsPane: View {
 
     @ViewBuilder private func statusIcon(_ check: HelperHealth.Check?) -> some View {
         switch check ?? .checking {
-        case .ok: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-        case .attention: Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange)
-        case .missing: Image(systemName: "minus.circle").foregroundStyle(.secondary)
-        case .checking: ProgressView().controlSize(.small)
+        case .ok: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityLabel("Ready")
+        case .attention: Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange).accessibilityLabel("Needs attention")
+        case .missing: Image(systemName: "minus.circle").foregroundStyle(.secondary).accessibilityLabel("Not set up")
+        case .checking: ProgressView().controlSize(.small).accessibilityLabel("Checking")
         }
     }
 

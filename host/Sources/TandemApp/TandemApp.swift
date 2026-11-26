@@ -121,7 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             else if session.canSeamless { sub.addItem(dockItem("Enter Seamless Mode") { session.enterSeamless() }) }
             if session.state.isActive, !session.isSeamless { sub.addItem(dockItem("Show Window") { [weak self] in self?.show("vm", session.id) }) }
             if !session.guestPrograms.isEmpty, session.state == .running {
-                let programs = NSMenuItem(title: "Windows Programs", action: nil, keyEquivalent: "")
+                let programs = NSMenuItem(title: "\(session.config.guestSystemWord) Programs", action: nil, keyEquivalent: "")
                 let list = NSMenu()
                 list.addItem(dockItem("Keep Programs on the Mac…") { [weak self] in self?.show("macapps", session.id) })
                 list.addItem(.separator())
@@ -199,6 +199,11 @@ struct TandemApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var model = AppModel()
     @AppStorage("showMenuBarIcon") private var showMenuBarIcon = true
+
+    init() {
+        // A language for this run only (TANDEM_LANG=es), before anything looks up a string.
+        LanguageOverride.apply()
+    }
 
     var body: some Scene {
         Window("Control Center", id: "library") {

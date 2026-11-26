@@ -3,6 +3,11 @@
 mod linux;
 #[cfg(target_os = "linux")]
 pub use linux::*;
+// Linux guests: programs, launching and icons from the desktop's files; windows and drops from the X server.
+#[cfg(target_os = "linux")]
+mod linux_desktop;
+#[cfg(target_os = "linux")]
+mod linux_x11;
 
 #[cfg(windows)]
 mod windows;
@@ -14,6 +19,9 @@ pub use windows::*;
 mod macos;
 #[cfg(all(target_os = "macos", feature = "macos-guest"))]
 pub use macos::*;
+
+// What the Linux agent reads from a desktop session (desktop files, icons, X11 values); always built, so the host's `cargo test` checks it.
+pub mod linux_text;
 
 // What the macOS agent reads from system tools; always built, so the host's `cargo test` checks it.
 #[cfg_attr(not(all(target_os = "macos", feature = "macos-guest")), allow(dead_code))]

@@ -506,7 +506,7 @@ pub use activity::{activity_available, cpu_times, input_idle_seconds, keep_awake
 
 #[path = "windows_dragdrop.rs"]
 mod dragdrop;
-pub use dragdrop::{agent_data_dir, drop_target_folder, fallback_drop_folder, file_drop_available, folder_changed, install_send_to, message_box, selected_files_at};
+pub use dragdrop::{act_as_session_user, agent_data_dir, drop_target_folder, fallback_drop_folder, file_drop_available, folder_changed, install_send_to, message_box, selected_files_at};
 
 #[path = "windows_documents.rs"]
 mod documents;

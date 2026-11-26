@@ -26,6 +26,7 @@ extension VMSession {
             StartupView.pending.insert(id)
         case .stopped, .error:
             StartupView.pending.remove(id)
+            networkApplyResult = nil
             // "Quit Tandem" after a shutdown: only when the VM had been running and nothing else is.
             let ranBefore = previous == .stopping || previous == .running || previous == .paused
             if state == .stopped, ranBefore, !isSuspended, !isRestarting, behavior.afterShutdown == .quitTandem, !QuitCoordinator.isQuitting,

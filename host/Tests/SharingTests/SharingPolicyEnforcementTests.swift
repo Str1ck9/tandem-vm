@@ -144,7 +144,7 @@ final class SharingPolicyEnforcementTests: XCTestCase {
         config.guestOS = .linux; config.tpm = false
         try service.start(config: config)
         XCTAssertEqual(service.kind, "9p")
-        XCTAssertEqual(service.port, 0)
+        XCTAssertNotEqual(service.port, 0, "no folder goes through it, but drops and sends do")
         XCTAssertEqual(service.names, ["Docs", "Scratch"])
         XCTAssertFalse(service.changesApplyLive)
 

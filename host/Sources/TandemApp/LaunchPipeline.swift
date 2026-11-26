@@ -129,7 +129,7 @@ extension VMSession {
             guard let path = sharedPath(for: document) else {
                 throw LaunchError(kind: .notShared(document),
                                   message: "“\(document.lastPathComponent)” is not in a folder shared with “\(config.name)”.",
-                                  detail: "Windows can only open Mac files from folders you share with this virtual machine. Share “\(document.deletingLastPathComponent().lastPathComponent)”, or move the file into a shared folder (Configure > Options > Sharing).")
+                                  detail: "\(config.guestSystemWord) can only open Mac files from folders you share with this virtual machine. Share “\(document.deletingLastPathComponent().lastPathComponent)”, or move the file into a shared folder (Configure > Options > Sharing).")
             }
             shared.append(path)
         }
@@ -152,14 +152,14 @@ extension VMSession {
         guard await waitUntil(Self.guestToolsTimeout, { agent != nil || !state.isActive }), let agent else {
             // Most likely Windows is waiting for a password; show its screen so the user can give it.
             if state.isActive { AppDelegate.shared?.show("vm", id) }
-            throw LaunchError(kind: .guestTools, message: "Windows in “\(config.name)” did not get ready.",
+            throw LaunchError(kind: .guestTools, message: "\(config.guestSystemWord) in “\(config.name)” did not get ready.",
                               detail: state.isActive
-                                ? "Tandem’s guest tools did not answer. If Windows is waiting at its sign-in screen, sign in and try again."
+                                ? "Tandem’s guest tools did not answer. If the guest is waiting at its sign-in screen, sign in and try again."
                                 : (errorMessage ?? "The virtual machine stopped."))
         }
         guard agent.capabilities & 128 != 0 else {
             throw LaunchError(kind: .guestTools, message: "“\(config.name)” cannot open programs from the Mac.",
-                              detail: "Its guest tools do not list the guest’s programs. This works with Windows guests.")
+                              detail: "Its guest tools do not list the guest’s programs. This works with Windows and Linux guests.")
         }
 
         launchLog("guest tools answered (capabilities \(agent.capabilities))")
@@ -187,7 +187,7 @@ extension VMSession {
             guard await waitUntil(60, { !guestPrograms.isEmpty || !state.isActive }),
                   let program = guestPrograms.first(where: { $0.id == programID }) else {
                 throw LaunchError(kind: .guest, message: "\(name) is not installed in “\(config.name)” any more.",
-                                  detail: "Windows no longer lists this program. Remove its launcher from the Mac, or install the program again.")
+                                  detail: "\(config.guestSystemWord) no longer lists this program. Remove its launcher from the Mac, or install the program again.")
             }
             link.launchProgram(id: program.id)
         } else {
@@ -198,14 +198,14 @@ extension VMSession {
             let request = launches.newRequest()
             link.openDocuments(request: request, program: programID, documents: shared)
             guard let result = await launches.waitForDocumentResult(request: request, timeout: 90) else {
-                throw LaunchError(kind: .guest, message: "Windows did not answer the request to open the document.",
+                throw LaunchError(kind: .guest, message: "\(config.guestSystemWord) did not answer the request to open the document.",
                                   detail: state.isActive ? "The guest tools took too long. Try again." : "The virtual machine stopped.")
             }
             switch result.status {
             case .ok: break
             case .unreachable:
-                throw LaunchError(kind: .guest, message: "Windows cannot reach “\(documents[0].lastPathComponent)”.",
-                                  detail: result.message.isEmpty ? "The shared Mac folder is not connected in Windows." : result.message)
+                throw LaunchError(kind: .guest, message: "\(config.guestSystemWord) cannot reach “\(documents[0].lastPathComponent)”.",
+                                  detail: result.message.isEmpty ? "The shared Mac folder is not connected in \(config.guestSystemWord)." : result.message)
             case .unknownProgram:
                 throw LaunchError(kind: .guest, message: "\(name) is not installed in “\(config.name)” any more.", detail: result.message)
             case .failed, .notSupported:

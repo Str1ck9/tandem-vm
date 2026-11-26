@@ -33,8 +33,8 @@ struct PreferencesView: View {
 
     private var general: some View {
         Form {
-            Toggle("Show Tandem icon in menu bar", isOn: $showMenuBarIcon)
-            Toggle("Show Windows programs in the Dock in Seamless Mode", isOn: $guestAppDockTiles)
+            Toggle("Show Tandem icon in menu bar", isOn: $showMenuBarIcon).accessibilityLabel("Show Tandem icon in menu bar")
+            Toggle("Show Windows programs in the Dock in Seamless Mode", isOn: $guestAppDockTiles).accessibilityLabel("Show Windows programs in the Dock in Seamless Mode")
             LabeledContent("Virtual machines folder:") {
                 HStack {
                     Text(model.libraryPath).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
@@ -82,6 +82,7 @@ struct PreferencesView: View {
             CommandLineSettings()
             TemplatesSettings()
             CrashReportSettings()
+            LinuxIntegrationSettings()
         }
         .formStyle(.grouped)
     }
@@ -145,7 +146,7 @@ private struct StatusMenuVM: View {
             if session.canSuspend { Button("Suspend") { session.suspend() } }
             if session.can(.stop) { Button("Shut Down") { session.stop() } }
             if session.state.isActive {
-                Toggle("Keep Awake", isOn: Binding(get: { session.power.keepAwake }, set: { _ in session.toggleKeepAwake() }))
+                Toggle("Keep Awake", isOn: Binding(get: { session.power.keepAwake }, set: { _ in session.toggleKeepAwake() })).accessibilityLabel("Keep Awake")
                 if let summary = session.powerSummary { Text(AppDelegate.menuTitle(summary)) }
             }
             if session.canRestart { Button("Restart") { session.restart() } }
@@ -157,7 +158,7 @@ private struct StatusMenuVM: View {
                 }
             }
             if !session.guestPrograms.isEmpty, session.state == .running {
-                Menu("Windows Programs") {
+                Menu("\(session.config.guestSystemWord) Programs") {
                     Button("Keep Programs on the Mac…") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "macapps", value: session.id) }
                     Divider()
                     ForEach(session.guestPrograms) { program in

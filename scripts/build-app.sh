@@ -79,6 +79,17 @@ PLIST
 sed -i "" -e "s/@VERSION@/$version/" -e "s/@BUILD@/$buildnum/" -e "s/@COMMIT@/$commit/" -e "s/@BUILDDATE@/$builddate/" \
   -e "s|@PREFIX@|$TANDEM_BUNDLE_PREFIX|g" -e "s|@APPID@|$TANDEM_APP_ID|g" \
   -e "s|@UPDATEKEY@|$updatekey|" -e "s|@UPDATEFEED@|$updatefeed|" "$app/Contents/Info.plist"
+# Translations: the string catalog (resources/Localizable.xcstrings) becomes <language>.lproj/Localizable.strings;
+# English is the source language, so it needs no folder of its own. The app lists the languages it has.
+/usr/libexec/PlistBuddy -c "Add :CFBundleDevelopmentRegion string en" -c "Add :CFBundleLocalizations array" -c "Add :CFBundleLocalizations: string en" "$app/Contents/Info.plist"
+if xcrun --find xcstringstool >/dev/null 2>&1; then
+  xcrun xcstringstool compile "$root/resources/Localizable.xcstrings" -o "$app/Contents/Resources"
+  for lproj in "$app"/Contents/Resources/*.lproj; do
+    [ -d "$lproj" ] && /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations: string $(basename "$lproj" .lproj)" "$app/Contents/Info.plist"
+  done
+else
+  echo "warning: xcstringstool not found; the app is built in English only" >&2
+fi
 # Ship the Windows guest agent inside the app when it has been built (scripts/build-agent.sh).
 agent="$root/guest/target/aarch64-pc-windows-gnullvm/release/tandem-agent.exe"
 if [ -f "$agent" ]; then

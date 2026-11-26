@@ -1,4 +1,5 @@
 import Foundation
+import VMCore
 
 /// What a `tandem` command line asks for. Parsing is separate from running so it can be tested.
 public enum CLIAction: Equatable {
@@ -39,8 +40,11 @@ public enum CLIParser {
       snapshot revert <vm> <snapshot>          Throws away the current state
       snapshot delete <vm> <snapshot>
       screenshot <vm> <file.png>
-      sharing <vm> [--commands off|cli|ai]     What the VM shares with the Mac; who may run commands
-                                               in it (cli: this tool only; ai: also AI tools via MCP)
+      snapshot baseline <vm> <snapshot|none>   The one snapshot AI tools may revert to (none: no limit)
+      sharing <vm> [--commands off|cli|ai] [--ai-tier off|observe|operate|full]
+                                               What the VM shares with the Mac; who may run commands
+                                               in it (cli: this tool only; ai: also AI tools via MCP);
+                                               how much AI tools may do with it (default operate)
       share <vm> <folder> [--read-only] [--temporary] [--name name]
       unshare <vm> <folder name or path>
       services <vm>                            Published guest services
@@ -134,6 +138,10 @@ public enum CLIParser {
                 guard let value = map[commands] else { throw ControlError("bad-request", "--commands takes off, cli or ai.") }
                 args["commands"] = .string(value)
             }
+            if let tier = try option("--ai-tier") {
+                guard AITier(rawValue: tier) != nil else { throw ControlError("bad-request", "--ai-tier takes off, observe, operate or full.") }
+                args["aiTier"] = .string(tier)
+            }
             return try simple(.sharing, args: args)
         case "clone":
             var args: [String: JSON] = [:]
@@ -147,7 +155,7 @@ public enum CLIParser {
         case "services": return try simple(.services)
         case "programs": return try simple(.programs)
         case "snapshot", "snapshots":
-            guard let sub = words.first else { throw ControlError("bad-request", "snapshot: say list, take, revert or delete.") }
+            guard let sub = words.first else { throw ControlError("bad-request", "snapshot: say list, take, revert, delete or baseline.") }
             words.removeFirst()
             switch sub {
             case "list", "ls": return try simple(.snapshotList)
@@ -165,7 +173,12 @@ public enum CLIParser {
                 guard !words.isEmpty else { throw ControlError("bad-request", "snapshot \(sub): name the snapshot.") }
                 let snapshot = words.joined(separator: " "); words.removeAll()
                 return .request(op: sub == "revert" ? .snapshotRevert : .snapshotDelete, vm: name, args: ["snapshot": .string(snapshot)], screenshotFile: nil)
-            default: throw ControlError("bad-request", "snapshot: unknown “\(sub)”; say list, take, revert or delete.")
+            case "baseline":
+                let name = try vm()
+                guard !words.isEmpty else { throw ControlError("bad-request", "snapshot baseline: name the snapshot, or say none.") }
+                let snapshot = words.joined(separator: " "); words.removeAll()
+                return .request(op: .snapshotBaseline, vm: name, args: ["snapshot": .string(snapshot)], screenshotFile: nil)
+            default: throw ControlError("bad-request", "snapshot: unknown “\(sub)”; say list, take, revert, delete or baseline.")
             }
         case "screenshot":
             let name = try vm()

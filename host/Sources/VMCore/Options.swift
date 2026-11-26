@@ -125,4 +125,13 @@ extension VMConfig {
         copy.behavior = behavior
         return copy == self && other.behavior != behavior
     }
+
+    /// Nothing but behaviour and network settings differ: what a QEMU VM can take while it runs (live where
+    /// QEMU allows, the rest from its next start; see `QEMUEngine.applyNetwork`).
+    public func differsOnlyInBehaviorAndNetwork(from other: VMConfig) -> Bool {
+        var copy = other
+        copy.behavior = behavior
+        copy.network = network
+        return copy == self && (other.behavior != behavior || other.network != network)
+    }
 }

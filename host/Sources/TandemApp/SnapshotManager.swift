@@ -118,6 +118,9 @@ struct SnapshotManagerWindow: View {
             HStack {
                 Button("New") { beginNew() }.disabled(session.busy != nil)
                 Button("Delete") { deleteTarget = selected }.disabled(selected == nil || session.busy != nil)
+                Button(selected.map { $0.id == session.snapshotBaseline } == true ? "Clear Baseline" : "Set as Baseline") { toggleBaseline(selected) }
+                    .disabled(selected == nil || session.busy != nil)
+                    .help("The baseline is the one snapshot an AI tool may go back to. Without one, an AI tool with the Full level may go back to any snapshot.")
                 if let errorText {
                     Label(errorText, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red).lineLimit(2).textSelection(.enabled)
                 } else if let busy = session.busy {
@@ -150,7 +153,10 @@ struct SnapshotManagerWindow: View {
             }
             Button("Cancel", role: .cancel) { deleteTarget = nil }
         } message: {
-            Text("You can no longer go back to it. The virtual machine’s current state and its other snapshots are not affected. This cannot be undone.")
+            Text((deleteTarget?.id == session.snapshotBaseline
+                  ? "This is the baseline snapshot, the one an AI tool may go back to. Without it the virtual machine has no baseline, and an AI tool with the Full level may go back to any snapshot. "
+                  : "")
+                 + "You can no longer go back to it. The virtual machine’s current state and its other snapshots are not affected. This cannot be undone.")
         }
     }
 
@@ -162,7 +168,7 @@ struct SnapshotManagerWindow: View {
                 if let image = node.snapshot.map({ session.snapshotThumbnail($0) }) ?? session.thumbnail {
                     Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
                 } else {
-                    Image(systemName: session.config.guestOS.symbol).font(.system(size: 26)).foregroundStyle(.white.opacity(0.55))
+                    Image(systemName: session.config.guestOS.symbol).font(.system(size: 26)).foregroundStyle(.white.opacity(0.55)).accessibilityHidden(true)
                 }
             }
             .frame(width: Self.picture.width, height: Self.picture.height)
@@ -172,18 +178,28 @@ struct SnapshotManagerWindow: View {
                 Text(snapshot.name).font(.callout).lineLimit(2).multilineTextAlignment(.center)
                     .padding(.horizontal, 4).padding(.vertical, 1)
                     .background(isSelected ? Color.accentColor.opacity(0.25) : .clear, in: RoundedRectangle(cornerRadius: 4))
+                if snapshot.id == session.snapshotBaseline {
+                    Label("Baseline", systemImage: "flag.fill").font(.caption).foregroundStyle(.orange)
+                }
             } else {
                 Text("Current State").font(.callout.weight(.semibold)).foregroundStyle(Color.accentColor)
             }
         }
         .contentShape(Rectangle())
         .onTapGesture { selection = node.snapshot?.id }
+        // A picture that is chosen by a tap: for VoiceOver and the keyboard it is a button that says what it is and
+        // whether it is chosen.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(node.snapshot.map { "Snapshot \($0.name)" + ($0.id == session.snapshotBaseline ? ", baseline" : "") } ?? "Current state")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { selection = node.snapshot?.id }
         .help(node.snapshot.map { [$0.created.formatted(date: .abbreviated, time: .shortened), $0.note].compactMap { $0 }.joined(separator: "\n") } ?? "The virtual machine as it is now")
         .contextMenu {
             Button("Create New Snapshot") { beginNew() }
             if let snapshot = node.snapshot {
                 Button("Go to Snapshot") { selection = snapshot.id; goToTarget = snapshot }
                 Button("Delete Snapshot") { selection = snapshot.id; deleteTarget = snapshot }
+                Button(snapshot.id == session.snapshotBaseline ? "Clear Baseline" : "Set as Baseline") { toggleBaseline(snapshot) }
                 Divider()
                 Button("Snapshot Properties…") { name = snapshot.name; note = snapshot.note ?? ""; editing = .properties(snapshot) }
             }
@@ -244,6 +260,11 @@ struct SnapshotManagerWindow: View {
             do { try await session.goTo(target, savingCurrentAs: saveName); errorText = nil }
             catch { errorText = error.localizedDescription }
         }
+    }
+
+    private func toggleBaseline(_ snapshot: VMSnapshot?) {
+        guard let snapshot else { return }
+        attempt { try session.setSnapshotBaseline(snapshot.id == session.snapshotBaseline ? nil : snapshot) }
     }
 
     private func attempt(_ work: () throws -> Void) {

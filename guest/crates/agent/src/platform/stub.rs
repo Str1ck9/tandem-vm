@@ -73,3 +73,5 @@ pub fn agent_data_dir() -> std::path::PathBuf { std::env::temp_dir().join("tande
 pub fn message_box(title: &str, text: &str) { eprintln!("{title}: {text}"); }
 pub fn install_send_to() {}
 pub fn folder_changed(_folder: &std::path::Path) {}
+/// Only Linux guests switch the file-system identity of the copying thread to the signed-in user.
+pub fn act_as_session_user() {}

@@ -93,7 +93,7 @@ final class CommandBuilderTests: XCTestCase {
         config.network.mac = "02:00:00:00:00:01"
         let a = try args(config)
         XCTAssertNotNil(value(a, after: "-netdev", containing: "user,id=net0,hostfwd=tcp:127.0.0.1:2222-:22,hostfwd=tcp:127.0.0.1:3389-:3389"))
-        XCTAssertNotNil(value(a, after: "-device", containing: "virtio-net-pci,netdev=net0,mac=02:00:00:00:00:01"))
+        XCTAssertNotNil(value(a, after: "-device", containing: "virtio-net-pci,netdev=nic0,mac=02:00:00:00:00:01"))
     }
 
     func testRejectsWrongEngineAndMacOS() throws {
@@ -276,7 +276,7 @@ final class CommandBuilderTests: XCTestCase {
         let a = try QEMUCommandBuilder.arguments(bundle: bundle, toolchain: toolchain, paths: paths, display: .none, bridgeSocket: "/var/run/tandem-net-1.dgram")
         XCTAssertEqual(value(a, after: "-netdev", containing: "id=net0"),
                        "dgram,id=net0,local.type=unix,local.path=/tmp/tandem-test/net.sock,remote.type=unix,remote.path=/var/run/tandem-net-1.dgram")
-        XCTAssertNotNil(value(a, after: "-device", containing: "virtio-net-pci,netdev=net0,mac=\(config.network.mac)"))
+        XCTAssertNotNil(value(a, after: "-device", containing: "virtio-net-pci,netdev=nic0,mac=\(config.network.mac)"))
         XCTAssertNil(value(a, after: "-netdev", containing: "id=net1"), "no second adapter without a folder server")
         // With shared folders served on the Mac, a bridged VM gets an isolated second adapter that reaches only them.
         let b = try QEMUCommandBuilder.arguments(bundle: bundle, toolchain: toolchain, paths: paths, display: .none,

@@ -2,8 +2,9 @@ import Foundation
 
 /// `tandem mcp`: Tandem as a Model Context Protocol server over stdin/stdout (JSON-RPC 2.0, one message
 /// per line). Every tool is one control request with `client: mcp`, so the app applies its rules: nothing
-/// at all while "Allow AI tools (MCP) to control Tandem" is off, and per VM the sharing policy
-/// (commands from AI tools are off unless turned on for that VM; restricted VMs get no folders).
+/// at all while "Allow AI tools (MCP) to control Tandem" is off, and per VM the AI level (`AITier`:
+/// off, observe, operate, full) and the sharing policy (commands from AI tools are off unless turned on
+/// for that VM; restricted VMs get no folders).
 public final class MCPServer {
     public typealias Transport = (ControlOp, String?, [String: JSON]) throws -> JSON
 
@@ -80,9 +81,31 @@ public final class MCPServer {
              required: ["vm", "folder"], readOnly: false, destructive: false),
     ]
 
+    /// What each tool needs, stated in its description so an agent knows before it asks. The app enforces
+    /// it (`AIAuthorization`); this is only the explanation. Levels are set per VM by the person at the Mac.
+    static let levelNotes: [String: String] = [
+        "list_vms": "",
+        "vm_info": AIAuthorization.levelNote(for: .info),
+        "list_snapshots": AIAuthorization.levelNote(for: .snapshotList),
+        "screenshot": AIAuthorization.levelNote(for: .screenshot),
+        "start_vm": AIAuthorization.levelNote(for: .start),
+        "suspend_vm": AIAuthorization.levelNote(for: .suspend),
+        "resume_vm": AIAuthorization.levelNote(for: .resume),
+        "take_snapshot": AIAuthorization.levelNote(for: .snapshotTake),
+        "unshare_folder": AIAuthorization.levelNote(for: .unshare),
+        "stop_vm": "Needs the AI level Operate; with force it needs Full.",
+        "guest_exec": "Needs the AI level Operate or higher, and the VM's “Commands from the Mac” must allow AI tools.",
+        "share_folder": "Needs the AI level Operate for a read-only share; sharing a folder the guest can change needs Full.",
+        "clone_vm": AIAuthorization.levelNote(for: .clone),
+        "revert_snapshot": AIAuthorization.levelNote(for: .snapshotRevert)
+            + " If the VM has a baseline snapshot, only that snapshot can be reverted to.",
+    ]
+
     static func toolJSON(_ tool: Tool) -> JSON {
-        .object([
-            "name": .string(tool.name), "description": .string(tool.description),
+        let note = levelNotes[tool.name] ?? ""
+        let description = note.isEmpty ? tool.description : tool.description + " " + note
+        return .object([
+            "name": .string(tool.name), "description": .string(description),
             "inputSchema": .object(["type": "object", "properties": .object(tool.properties), "required": .array(tool.required.map(JSON.string))]),
             "annotations": .object(["readOnlyHint": JSON(tool.readOnly), "destructiveHint": JSON(tool.destructive)]),
         ])
@@ -110,7 +133,7 @@ public final class MCPServer {
                 "protocolVersion": .string(chosen),
                 "capabilities": .object(["tools": .object(["listChanged": false])]),
                 "serverInfo": .object(["name": "tandem", "version": .string(version)]),
-                "instructions": .string("Controls the virtual machines of Tandem on this Mac. The user must turn on “Allow AI tools (MCP) to control Tandem” in Tandem's settings, and guest_exec must be allowed per VM."),
+                "instructions": .string("Controls the virtual machines of Tandem on this Mac. The user must turn on “Allow AI tools (MCP) to control Tandem” in Tandem's settings. Each VM has an AI level (Off, Observe, Operate, Full) that decides which tools work on it; a tool's description says what it needs, and guest_exec also needs the VM's “Commands from the Mac” to allow AI tools. Revert and clone need Full, and deleting snapshots is not offered."),
             ]))
         case "notifications/initialized", "notifications/cancelled":
             return nil

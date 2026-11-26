@@ -7,12 +7,12 @@ extension VMState {
     /// Status text as shown under a VM's name.
     var label: String {
         switch self {
-        case .stopped: return "Stopped"
-        case .starting: return "Starting…"
-        case .running: return "Running"
-        case .paused: return "Paused"
-        case .stopping: return "Stopping…"
-        case .error: return "Error"
+        case .stopped: return String(localized: "Stopped")
+        case .starting: return String(localized: "Starting…")
+        case .running: return String(localized: "Running")
+        case .paused: return String(localized: "Paused")
+        case .stopping: return String(localized: "Stopping…")
+        case .error: return String(localized: "Error")
         }
     }
     var color: Color {
@@ -138,10 +138,13 @@ struct ControlCenterView: View {
         .toolbar {
             ToolbarItem {
                 Picker("View", selection: $compact) {
-                    Image(systemName: "rectangle.grid.1x2").accessibilityLabel("Expanded View").tag(false)
-                    Image(systemName: "list.bullet").accessibilityLabel("Compact View").tag(true)
+                    // A label shown as its picture only keeps its words for VoiceOver (a bare image loses its name
+                    // inside a segmented control).
+                    Image(nsImage: Self.viewIcon("rectangle.grid.1x2", "Expanded View")).tag(false)
+                    Image(nsImage: Self.viewIcon("list.bullet", "Compact View")).tag(true)
                 }
                 .pickerStyle(.segmented)
+                .accessibilityLabel("View")
                 .help("Show virtual machines in expanded or compact view")
             }
             ToolbarItem {
@@ -150,6 +153,7 @@ struct ControlCenterView: View {
                     Button("Import from Parallels…") { chooseParallelsVM() }
                 } label: { Label("Add", systemImage: "plus") }
                 .help("Create or import a virtual machine")
+                .accessibilityLabel("Add a virtual machine")
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -243,6 +247,13 @@ struct ControlCenterView: View {
     }
 
     /// Parallels bundles are packages, so the open panel has to be told to treat them as files.
+    /// A symbol that carries its spoken name with it: a segment of a segmented control is named from its image.
+    static func viewIcon(_ symbol: String, _ name: String) -> NSImage {
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: name) ?? NSImage()
+        image.isTemplate = true
+        return image
+    }
+
     func chooseParallelsVM() {
         let panel = NSOpenPanel()
         panel.title = "Import from Parallels"
@@ -335,12 +346,13 @@ struct VMRow: View {
                             .help("Configure").accessibilityLabel("Configure \(session.config.name)")
                         Divider().frame(height: 14)
                     }
-                    Circle().fill(session.state.color).frame(width: 7, height: 7)
+                    Circle().fill(session.state.color).frame(width: 7, height: 7).accessibilityHidden(true)
                     Text(session.statusLabel).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                     if let provisioning = session.provisioning {
                         // A system being downloaded: how far along, and a way to stop.
                         ProgressView(value: provisioning.fraction).progressViewStyle(.linear).frame(width: compact ? 60 : 110)
                             .accessibilityLabel("Download progress")
+                            .accessibilityValue(provisioning.fraction.map { "\(Int($0 * 100)) percent" } ?? "starting")
                         Button { session.cancelProvisioning?() } label: { Image(systemName: "xmark.circle.fill") }
                             .help("Cancel the download and remove this virtual machine").accessibilityLabel("Cancel download of \(session.config.name)")
                     }
@@ -377,6 +389,9 @@ struct VMRow: View {
         }
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
+        // One row for VoiceOver: the name and what it is doing, with its buttons inside.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(session.config.name), \(session.config.guestOS.label), \(session.statusLabel)")
     }
 
     private var subtitle: String {

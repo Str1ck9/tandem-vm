@@ -99,13 +99,17 @@ public final class SharedFolderService: @unchecked Sendable {
         let policy = policy ?? SharingPolicy(config)
         let shares = Self.shares(for: policy)
         kind = Self.kind(for: config)
-        guard kind == "webdav" else {
+        if kind != "webdav" {
             bootFolders = policy.folders.map(\.folder)
             names = shares.map(\.name)
-            return
+            // Linux on QEMU has its folders as devices, but files dropped on it and sent from it still go
+            // through a server on the Mac that serves only the hidden drop and inbox shares.
+            guard config.supportsGuestFileDrop, config.engine == .qemu else { return }
+            policyShares = []
+        } else {
+            policyShares = shares
         }
-        policyShares = shares
-        let server = WebDAVServer(shares: shares + transferShares)
+        let server = WebDAVServer(shares: policyShares + transferShares)
         server.onLog = onLog
         if onlyVMProcess {
             // Until the VM's process is known nothing is answered; then only it and the `nc` it runs per
@@ -142,7 +146,9 @@ public final class SharedFolderService: @unchecked Sendable {
     public func apply(_ policy: SharingPolicy, devicesUpdated: Bool = false) -> Change {
         let shares = Self.shares(for: policy)
         var change = Change()
-        if let server {
+        // Only a WebDAV guest's folders go through the server; a Linux guest's are devices (its server
+        // carries nothing but the hidden drop and inbox shares).
+        if let server, kind == "webdav" {
             if policyShares != shares {
                 // From this line on the server answers for the new list only.
                 policyShares = shares

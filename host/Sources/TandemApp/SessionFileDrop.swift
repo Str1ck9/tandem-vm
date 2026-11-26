@@ -28,7 +28,7 @@ final class FileTransferCenter {
     func update(_ session: VMSession) {
         let id = session.id
         let running = session.state == .running || session.state == .paused || session.state == .starting
-        guard running, session.sharedFolders.kind == "webdav" else {
+        guard running, session.sharedFolders.port != 0 else {   // a WebDAV guest, or a Linux guest's transfer server
             inboxTimers.removeValue(forKey: id)?.invalidate()
             watchdogs.removeValue(forKey: id)?.cancel()
             if let manifest = pending.removeValue(forKey: id)?.manifest { FileDrop.discard(manifest.id, in: FileDrop.dropRoot(session.bundle)) }
@@ -83,7 +83,7 @@ final class FileTransferCenter {
     /// Why `session` cannot take a drop now, in words for the user; nil when it can.
     func refusal(_ session: VMSession) -> String? {
         guard session.state == .running else { return "“\(session.config.name)” is not running." }
-        guard session.config.guestOS == .windows11arm else { return "Dropping files is available for Windows virtual machines only." }
+        guard session.config.supportsGuestFileDrop else { return "Dropping files is available for Windows and Linux virtual machines only." }
         guard let agent = session.agent else { return "The Tandem guest tools in “\(session.config.name)” are not running yet." }
         guard agent.capabilities & GuestCapability.fileDrop != 0 else { return "The guest tools in “\(session.config.name)” are too old for drag and drop. They update themselves at the next start." }
         do { try session.sharingPolicy.requireFilesToGuest() } catch { return (error as? VMError)?.errorDescription ?? error.localizedDescription }

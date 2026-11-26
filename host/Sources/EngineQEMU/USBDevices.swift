@@ -345,7 +345,7 @@ extension QEMUEngine {
     public func closeInboundForwards() async -> Int {
         guard let qmp = controlChannel else { return 0 }
         // What this run was started with, not what the configuration says now.
-        let ports = bundle.config.network.portForwards.map(\.hostPort) + serviceBackends.values
+        let ports = (liveNetwork ?? bundle.config.network).portForwards.map(\.hostPort) + serviceBackends.values
         var closed = 0
         for port in ports {
             let reply = try? await qmp.execute("human-monitor-command", arguments: ["command-line": "hostfwd_remove net0 tcp:127.0.0.1:\(port)"])

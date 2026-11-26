@@ -103,7 +103,10 @@ fn capabilities() -> u32 {
     if platform::documents_available() { caps |= capability::DOCUMENTS; }
     if platform::activity_available() { caps |= capability::ACTIVITY; }
     if platform::file_drop_available() { caps |= capability::FILE_DROP; }
-    if platform::windows_available() { caps |= capability::SEAMLESS_EVENTS | capability::SEAMLESS_DISPLAYS; }
+    if platform::windows_available() { caps |= capability::SEAMLESS_DISPLAYS; }
+    // Setting the guest's display scale (for Retina resolution) is something Windows guests do.
+    #[cfg(not(target_os = "linux"))]
+    if platform::windows_available() { caps |= capability::SEAMLESS_EVENTS; }
     if exec::available() { caps |= capability::EXEC; }
     caps | capability::SELF_UPDATE | capability::RESTART
 }

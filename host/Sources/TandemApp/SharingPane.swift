@@ -93,7 +93,18 @@ struct SharingPane: View {
                 Picker("Who may run commands:", selection: profile.commands) {
                     ForEach(CommandAccess.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
-                note("The `tandem exec` command and the AI tool “guest_exec” run commands inside this virtual machine through its guest tools. AI tools also need “Allow AI tools (MCP) to control Tandem” in Tandem’s settings.")
+                note("The `tandem exec` command and the AI tool “guest_exec” run commands inside this virtual machine through its guest tools. AI tools also need “Allow AI tools (MCP) to control Tandem” in Tandem’s settings, and an AI level of Operate or Full below.")
+            }
+            Section("AI tools (MCP)") {
+                Picker("AI level:", selection: profile.aiTier) {
+                    ForEach(AITier.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                note(profile.wrappedValue.aiTier.summary + " Deleting snapshots is never offered to AI tools. Every call an AI tool makes is listed under Tandem > Settings > Advanced > AI activity.")
+                if profile.wrappedValue.aiTier == .full {
+                    Label("Full lets an AI tool revert snapshots, clone, power off and reset this virtual machine, and share folders it can change. Mark a baseline snapshot in Snapshot Manager so that it can only go back to that one.",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .formStyle(.grouped)

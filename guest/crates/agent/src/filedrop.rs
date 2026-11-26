@@ -209,6 +209,8 @@ pub fn receive(client: &Client, x: i32, y: i32, data: &[u8]) {
         crate::log_local("a file drop could not be read");
         return;
     };
+    // Linux: this thread now writes as the person at the desktop (a root agent would own the new files).
+    platform::act_as_session_user();
     let (folder, fell_back) = match platform::drop_target_folder(x, y) {
         Some(folder) => (folder, false),
         None => match platform::fallback_drop_folder() {
@@ -313,6 +315,8 @@ pub fn drag_out_fetch(text: &str) {
         return;
     };
     let paths: Vec<String> = lines.map(str::to_string).filter(|p| !p.is_empty()).collect();
+    // Linux: only what the person at the desktop may read is uploaded.
+    platform::act_as_session_user();
     if let Err(e) = upload_as(&paths, id) {
         crate::log_local(&format!("drag out {id} failed: {e}"));
         if let Some(port) = remembered_port() {

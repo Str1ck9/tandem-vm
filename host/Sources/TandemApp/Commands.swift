@@ -93,7 +93,7 @@ struct TandemCommands: Commands {
             }
             Button("Reset") { session?.reset() }.disabled(session?.canReset != true)
             // Holds the idle timer off for this VM (PowerMonitor.swift).
-            Toggle("Keep Awake", isOn: Binding(get: { session?.power.keepAwake ?? false }, set: { _ in session?.toggleKeepAwake() }))
+            Toggle("Keep Awake", isOn: Binding(get: { session?.power.keepAwake ?? false }, set: { _ in session?.toggleKeepAwake() })).accessibilityLabel("Keep Awake")
                 .disabled(session == nil)
             Divider()
             if session?.config.guestOS == .macos {

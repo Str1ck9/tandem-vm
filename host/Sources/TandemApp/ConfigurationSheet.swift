@@ -1,4 +1,5 @@
 import AppKit
+import EngineQEMU
 import SwiftUI
 import NetHelperClient
 import UniformTypeIdentifiers
@@ -92,6 +93,12 @@ struct ConfigurationSheet: View {
     /// Nothing to save, or the VM is running and the change is to more than its behaviour settings.
     private var canSave: Bool {
         let forwardsChanged = forwards != Self.text(original.network.portForwards)
+        if session.isLocked && session.canChangeNetworkLive {
+            // A running QEMU VM takes network changes (live, or from its next start) and behaviour settings.
+            var elsewhere = draft
+            elsewhere.network = original.network; elsewhere.behavior = original.behavior
+            return elsewhere == original && (draft != original || forwardsChanged)
+        }
         if session.isLocked { return !forwardsChanged && draft.differsOnlyInBehavior(from: original) }
         return draft != original || forwardsChanged
     }
@@ -122,6 +129,9 @@ struct ConfigurationSheet: View {
                 } else if session.state.isActive, tab == .options, optionPane == "sharing" {
                     // The Sharing pane applies its changes to a running VM by itself.
                     EmptyView()
+                } else if session.canChangeNetworkLive, tab == .hardware, hardwarePane == "network" {
+                    Label("Save applies network changes to the running virtual machine where it can. The address and anything else it cannot change now waits for the next start.", systemImage: "bolt.horizontal")
+                        .foregroundStyle(.secondary).font(.callout)
                 } else if session.state.isActive {
                     Label("Shut down the virtual machine to change its hardware and sharing. Startup, keyboard and screen behaviour can be changed now.", systemImage: "lock")
                         .foregroundStyle(.secondary).font(.callout)
@@ -136,7 +146,8 @@ struct ConfigurationSheet: View {
             }
             .padding(14)
         }
-        .frame(width: 720, height: 540)
+        // Self-tests (screenshots): TANDEM_SNAPSHOT_CONFIG_HEIGHT makes the window taller so a long pane fits.
+        .frame(width: 720, height: ProcessInfo.processInfo.environment["TANDEM_SNAPSHOT_CONFIG_HEIGHT"].flatMap { Double($0) }.map { CGFloat($0) } ?? 540)
         .navigationTitle("“\(original.name)” Configuration")
         .focusedSceneValue(\.activeSession, session)
         .onReceive(NotificationCenter.default.publisher(for: .selfTestSettings)) { note in
@@ -154,7 +165,7 @@ struct ConfigurationSheet: View {
             ForEach(Tab.allCases) { item in
                 Button { tab = item } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: item.symbol).font(.system(size: 20)).frame(height: 24)
+                        Image(systemName: item.symbol).font(.system(size: 20)).frame(height: 24).accessibilityHidden(true)
                         Text(item.title).font(.caption)
                     }
                     .frame(width: 78, height: 50)
@@ -210,7 +221,7 @@ struct ConfigurationSheet: View {
 
     private func comingLater(_ title: String, symbol: String, _ text: String) -> some View {
         VStack(spacing: 10) {
-            Image(systemName: symbol).font(.system(size: 34)).foregroundStyle(.tertiary)
+            Image(systemName: symbol).font(.system(size: 34)).foregroundStyle(.tertiary).accessibilityHidden(true)
             Text(title).font(.title3)
             Text("Not available yet").font(.callout.weight(.medium)).foregroundStyle(.secondary)
             Text(text).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center).frame(maxWidth: 360)
@@ -224,13 +235,14 @@ struct ConfigurationSheet: View {
     private var generalTab: some View {
         page {
             Section {
-                TextField("Name", text: $draft.name)
+                TextField("Name", text: $draft.name).accessibilityLabel("Name")
                 TextField("Description", text: Binding(get: { draft.notes ?? "" }, set: { draft.notes = $0.isEmpty ? nil : $0 }), axis: .vertical)
-                    .lineLimit(2...4)
+                    .lineLimit(2...4).accessibilityLabel("Description")
             }
             Section {
                 ColorPicker("Colour in Control Center", selection: Binding(
                     get: { draft.stripeColor }, set: { draft.color = $0.hex }), supportsOpacity: false)
+                    .accessibilityLabel("Colour in Control Center")
                 LabeledContent("Operating system", value: draft.guestOS.label)
                 LabeledContent("Engine", value: isQEMU ? "QEMU (Hypervisor.framework)" : "Apple Virtualization")
                 LabeledContent("Space used on this Mac", value: Self.spaceUsed(session.bundle.url))
@@ -284,8 +296,10 @@ struct ConfigurationSheet: View {
         case "cpu":
             page {
                 Stepper("Processors: \(draft.cpuCount)", value: $draft.cpuCount, in: 1...Self.hostCPUs)
+                    .accessibilityLabel("Processors").accessibilityValue("\(draft.cpuCount)")
                 Stepper("Memory: \(draft.memoryMiB / 1024) GiB", value: $draft.memoryMiB,
                         in: 1024...max(1024, Self.hostMemoryMiB - 2048), step: 1024)
+                    .accessibilityLabel("Memory").accessibilityValue("\(draft.memoryMiB / 1024) gibibytes")
                 note("This Mac has \(Self.hostCPUs) processor cores and \(Self.hostMemoryMiB / 1024) GiB of memory. Leave at least half of each for macOS.")
             }
         case "graphics":
@@ -293,6 +307,7 @@ struct ConfigurationSheet: View {
                 Picker("Resolution", selection: resolution) {
                     ForEach(resolutionChoices, id: \.self) { Text($0.replacingOccurrences(of: "x", with: " × ")).tag($0) }
                 }
+                .accessibilityLabel("Resolution")
                 if isWindows && original.display.virtioGPU != true {
                     note("This Windows VM has no display driver yet, so it stays at 800 × 600 until one is installed.")
                 }
@@ -300,6 +315,7 @@ struct ConfigurationSheet: View {
                     Toggle("3D acceleration (Linux, experimental)", isOn: Binding(
                         get: { draft.display.accelerated3D == true },
                         set: { draft.display.accelerated3D = $0 ? true : nil }))
+                        .accessibilityLabel("3D acceleration for Linux")
                     note(Graphics3D.note(installed: Graphics3D.isInstalled))
                 } else if draft.guestOS == .windows11arm && draft.engine == .qemu {
                     // Turning it on is all the user does: Tandem fetches the signed driver and the guest tools
@@ -308,11 +324,21 @@ struct ConfigurationSheet: View {
                         get: { draft.display.accelerated3D == true },
                         set: { draft.display.accelerated3D = $0 ? true : nil }))
                         .disabled(!Graphics3D.isWindowsInstalled && draft.display.accelerated3D != true)
+                        .accessibilityLabel("3D acceleration for Windows")
                     note(Graphics3D.windowsNote(installed: Graphics3D.isWindowsInstalled,
                                                 driver: session.config.display.windows3DDriver))
                 } else {
                     LabeledContent("3D acceleration", value: "Not available")
                     note("3D acceleration is available for Linux and Windows virtual machines on the QEMU engine.")
+                }
+                if draft.guestOS == .windows11arm && draft.engine == .qemu {
+                    Toggle("Use Retina resolution", isOn: Binding(
+                        get: { draft.display.useRetinaResolution },
+                        set: { draft.display.retinaResolution = $0 ? true : nil }))
+                    Toggle("Match Windows’ display scale to the screen", isOn: Binding(
+                        get: { draft.display.matchWindowsScale },
+                        set: { draft.display.matchesWindowsScale = $0 ? nil : false }))
+                    note("Retina resolution gives Windows as many pixels as the window has on screen, so text is sharp; it asks more of the display. Windows’ display scale is then raised (150%, 200%, …) so its interface keeps its size. The 3D display driver takes only a fixed list of sizes while Windows runs; Windows then gets the closest size that fits inside the window (for example 2048 × 1152 for a 3024 × 1740 window).")
                 }
                 note("The VM’s screen is scaled to fit its window. With the guest tools running, the VM also changes its resolution to match.")
             }
@@ -345,12 +371,20 @@ struct ConfigurationSheet: View {
                 LabeledContent("MAC address") {
                     HStack {
                         TextField("", text: $draft.network.mac).labelsHidden().font(.body.monospaced()).frame(width: 170)
+                            .accessibilityLabel("MAC address")
                         Button("Generate") { draft.network.mac = NetworkConfig.randomMAC() }
                     }
                 }
                 if isQEMU {
                     TextField("Port forwarding", text: $forwards, prompt: Text("2222:22, 8080:80"))
+                        .accessibilityLabel("Port forwarding").accessibilityHint("Mac port, colon, VM port, separated by commas")
                     note("Mac port : VM port, separated by commas. The ports are reachable from this Mac only.")
+                    Toggle("Network cable connected", isOn: Binding(get: { draft.network.cableIsConnected },
+                                                                    set: { draft.network.cableConnected = $0 ? nil : false }))
+                    note("Unplug the cable to cut the virtual machine off the network without shutting it down. The guest sees the link go down.")
+                }
+                if let result = session.networkApplyResult, session.canChangeNetworkLive {
+                    networkResultSection(result)
                 }
                 PublishedServicesSection(draft: $draft, session: session)
             }
@@ -360,6 +394,7 @@ struct ConfigurationSheet: View {
                     LabeledContent("File", value: disk.file)
                     LabeledContent("Connection", value: disk.bus == .nvme ? "NVMe" : "VirtIO")
                     Stepper("Size: \(disk.sizeGiB) GiB", value: $draft.disks[0].sizeGiB, in: originalDiskGiB...2048, step: 8)
+                        .accessibilityLabel("Disk size").accessibilityValue("\(disk.sizeGiB) gibibytes")
                     if disk.sizeGiB > originalDiskGiB {
                         note("The disk grows to \(disk.sizeGiB) GiB. The VM must then extend its own partition to use the new space. A disk cannot be made smaller afterwards.")
                     } else {
@@ -381,7 +416,7 @@ struct ConfigurationSheet: View {
         case "tpm":
             if isQEMU {
                 page {
-                    Toggle("TPM 2.0 chip", isOn: $draft.tpm)
+                    Toggle("TPM 2.0 chip", isOn: $draft.tpm).accessibilityLabel("TPM 2.0 chip")
                     if isWindows && !draft.tpm { note("Windows 11 expects a TPM. Without it, BitLocker and Windows Hello stop working.") }
                 }
             } else {
@@ -410,8 +445,8 @@ struct ConfigurationSheet: View {
                 note("Stops sharing everything: folders, the clipboard, USB devices, and connections into the VM. The same as the Restricted preset under Options > Sharing, where each part can be set by itself.")
             }
             Section {
-                Toggle("Encrypt the VM with a password", isOn: .constant(false)).disabled(true)
-                Toggle("Require a password to change its configuration", isOn: .constant(false)).disabled(true)
+                Toggle("Encrypt the VM with a password", isOn: .constant(false)).disabled(true).accessibilityLabel("Encrypt the VM with a password")
+                Toggle("Require a password to change its configuration", isOn: .constant(false)).disabled(true).accessibilityLabel("Require a password to change its configuration")
                 note("Encryption and password protection are not available yet.")
             }
         }
@@ -441,6 +476,7 @@ struct ConfigurationSheet: View {
                         Spacer()
                         Button("Go Back to This…") { revertTarget = snapshot }
                         Button(role: .destructive) { deleteTarget = snapshot } label: { Image(systemName: "trash") }
+                            .accessibilityLabel("Delete snapshot \(snapshot.name)")
                             .help("Delete this snapshot").accessibilityLabel("Delete snapshot \(snapshot.name)")
                     }
                 }
@@ -584,7 +620,64 @@ struct ConfigurationSheet: View {
         if let pane { hardwarePane = pane }
     }
 
+    /// What the last change did to the running VM: applied now, waiting for the next start, or refused.
+    private func networkResultSection(_ result: NetworkApplyResult) -> some View {
+        Section("Last change") {
+            ForEach(Array(VMSession.networkSummary(result).enumerated()), id: \.offset) { _, row in
+                Label(row.text, systemImage: row.symbol)
+                    .foregroundStyle(row.symbol.hasPrefix("exclamation") ? Color.orange : Color.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(Self.networkRowAccessibility(row))
+            }
+            if result.applied.isEmpty && result.atNextStart.isEmpty && result.failures.isEmpty {
+                Text("Nothing needed changing.").foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    static func networkRowAccessibility(_ row: (symbol: String, text: String)) -> String {
+        if row.symbol.hasPrefix("checkmark") { return "Applied now: \(row.text)" }
+        if row.symbol.hasPrefix("arrow") { return "Waits for the next start: \(row.text)" }
+        return "Problem: \(row.text)"
+    }
+
+    /// The port forwarding text as forwards, or nil (after showing why).
+    private func parseForwards() -> [PortForward]? {
+        var parsed: [PortForward] = []
+        for item in forwards.split(separator: ",") {
+            let parts = item.trimmingCharacters(in: .whitespaces).split(separator: ":").compactMap { Int($0) }
+            guard parts.count == 2, (1...65535).contains(parts[0]), (1...65535).contains(parts[1]) else {
+                fail("Port forwarding must look like 2222:22, 8080:80.", tab: .hardware, pane: "network")
+                return nil
+            }
+            parsed.append(PortForward(hostPort: parts[0], guestPort: parts[1]))
+        }
+        return parsed
+    }
+
+    /// A running QEMU VM: the network changes go to it now, what it cannot take waits for the next start.
+    private func saveLiveNetwork() {
+        var config = draft
+        config.network.mac = config.network.mac.trimmingCharacters(in: .whitespaces).lowercased()
+        guard config.network.mac.range(of: "^([0-9a-f]{2}:){5}[0-9a-f]{2}$", options: .regularExpression) != nil else {
+            return fail("The MAC address must look like 02:1c:42:a0:0c:16.", tab: .hardware, pane: "network")
+        }
+        guard let parsed = parseForwards() else { return }
+        config.network.portForwards = parsed
+        errorText = nil
+        Task {
+            do {
+                let result = try await session.applyNetworkLive(config.network, behavior: config.behaviorOrDefault)
+                if result.isClean && result.atNextStart.isEmpty { dismiss() }
+                // Otherwise the pane stays, with what happened, so that nothing is missed.
+            } catch {
+                errorText = error.localizedDescription
+            }
+        }
+    }
+
     private func save() {
+        if session.isLocked && session.canChangeNetworkLive { return saveLiveNetwork() }
         if session.isLocked {
             // Only behaviour settings can change while the VM runs or is suspended.
             do { try session.applyBehavior(draft.behaviorOrDefault); dismiss() }
@@ -597,14 +690,7 @@ struct ConfigurationSheet: View {
         guard config.network.mac.range(of: "^([0-9a-f]{2}:){5}[0-9a-f]{2}$", options: .regularExpression) != nil else {
             return fail("The MAC address must look like 02:1c:42:a0:0c:16.", tab: .hardware, pane: "network")
         }
-        var parsed: [PortForward] = []
-        for item in forwards.split(separator: ",") {
-            let parts = item.trimmingCharacters(in: .whitespaces).split(separator: ":").compactMap { Int($0) }
-            guard parts.count == 2, (1...65535).contains(parts[0]), (1...65535).contains(parts[1]) else {
-                return fail("Port forwarding must look like 2222:22, 8080:80.", tab: .hardware, pane: "network")
-            }
-            parsed.append(PortForward(hostPort: parts[0], guestPort: parts[1]))
-        }
+        guard let parsed = parseForwards() else { return }
         config.network.portForwards = parsed
         do {
             try session.apply(config)

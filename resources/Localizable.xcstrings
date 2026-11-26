@@ -1,0 +1,2525 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "%@ cannot be suspended (3D graphics, or busy); shut %@ down instead." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ cannot be suspended (3D graphics, or busy); shut %2$@ down instead."
+          }
+        }
+      }
+    },
+    "%@ in the VM" : {
+
+    },
+    "%@ of a core" : {
+
+    },
+    "%@ · macOS %@ · %lld GB memory · %lld GB free" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · macOS %2$@ · %3$lld GB memory · %4$lld GB free"
+          }
+        }
+      }
+    },
+    "%@ · made %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · made %2$@"
+          }
+        }
+      }
+    },
+    "%@ — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@, %3$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@, %@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld gibibytes" : {
+
+    },
+    "%lld hours" : {
+
+    },
+    "%lld minutes" : {
+
+    },
+    "%lld on the Mac" : {
+
+    },
+    "%lld percent" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld por ciento"
+          }
+        }
+      }
+    },
+    "%lld virtual machines (%@) in:\n%@\n\nTheir disks, snapshots and settings go to the Trash with them. Empty the Trash only when you are sure." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld virtual machines (%2$@) in:\n%3$@\n\nTheir disks, snapshots and settings go to the Trash with them. Empty the Trash only when you are sure."
+          }
+        }
+      }
+    },
+    "%lld. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld. %2$@"
+          }
+        }
+      }
+    },
+    "1 hour" : {
+
+    },
+    "2222:22, 8080:80" : {
+
+    },
+    "3D acceleration" : {
+
+    },
+    "3D acceleration (Linux, experimental)" : {
+
+    },
+    "3D acceleration (Windows, experimental)" : {
+
+    },
+    "3D acceleration for Linux" : {
+
+    },
+    "3D acceleration for Windows" : {
+
+    },
+    "A test library is in use (TANDEM_HOME), so only its folder is considered; the helper, settings and app are left alone." : {
+
+    },
+    "A window" : {
+
+    },
+    "AI activity" : {
+
+    },
+    "AI level:" : {
+
+    },
+    "AI tools (MCP)" : {
+
+    },
+    "About Tandem" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acerca de Tandem"
+          }
+        }
+      }
+    },
+    "Access" : {
+
+    },
+    "Account name:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre de la cuenta:"
+          }
+        }
+      }
+    },
+    "Actions" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acciones"
+          }
+        }
+      }
+    },
+    "Adapters that can be bridged:" : {
+
+    },
+    "Add" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir"
+          }
+        }
+      }
+    },
+    "Add Folder…" : {
+
+    },
+    "Add a virtual machine" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir una máquina virtual"
+          }
+        }
+      }
+    },
+    "Advanced" : {
+
+    },
+    "After a crash, Tandem asks once whether to send a report. If you agree, it collects its diagnostics, shows the file in Finder and opens a pre-filled GitHub issue or e-mail for you to attach it to. Tandem never sends anything by itself." : {
+
+    },
+    "After it shuts down" : {
+
+    },
+    "After:" : {
+
+    },
+    "Allow AI tools (MCP) to control Tandem" : {
+
+    },
+    "Allow Mac USB devices to be connected" : {
+
+    },
+    "Allow Sharing" : {
+
+    },
+    "Allow bridged networking" : {
+
+    },
+    "Allow connections to the virtual machine" : {
+
+    },
+    "Allow network access" : {
+
+    },
+    "Allow the clipboard, USB devices and connections again" : {
+
+    },
+    "Also move my virtual machines to the Trash — %@" : {
+
+    },
+    "Alt + F4" : {
+
+    },
+    "Alt + Tab" : {
+
+    },
+    "An idle virtual machine is suspended to give its memory back to the Mac; opening one of its programs from the Mac resumes it. It is never suspended while it is in use: while you work in it, while its processor is busy, while something inside it asked to stay awake (in the guest: tandem-agent keep-awake -- <command>), or while Keep awake is on. Closing its window does not suspend it." : {
+
+    },
+    "Appearance:" : {
+
+    },
+    "As set in Tandem’s Settings (%@)" : {
+
+    },
+    "Ask me" : {
+
+    },
+    "Ask me what to do" : {
+
+    },
+    "Asking what is available…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consultando qué hay disponible…"
+          }
+        }
+      }
+    },
+    "Baseline" : {
+
+    },
+    "Bridge to" : {
+
+    },
+    "Bridged Network" : {
+
+    },
+    "CD/DVD" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CD/DVD"
+          }
+        }
+      }
+    },
+    "Camera" : {
+
+    },
+    "Cancel" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
+          }
+        }
+      }
+    },
+    "Cancel Download" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar descarga"
+          }
+        }
+      }
+    },
+    "Cancel download of %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar la descarga de %@"
+          }
+        }
+      }
+    },
+    "Cancel the download and remove this virtual machine" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar la descarga y eliminar esta máquina virtual"
+          }
+        }
+      }
+    },
+    "Change…" : {
+
+    },
+    "Check Again" : {
+
+    },
+    "Check Now" : {
+
+    },
+    "Check for Updates…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar actualizaciones…"
+          }
+        }
+      }
+    },
+    "Check for updates automatically (daily)" : {
+
+    },
+    "Checking" : {
+
+    },
+    "Checking for updates…" : {
+
+    },
+    "Choose Programs…" : {
+
+    },
+    "Choose…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir…"
+          }
+        }
+      }
+    },
+    "Clear Baseline" : {
+
+    },
+    "Click “New” to create a snapshot" : {
+
+    },
+    "Clipboard" : {
+
+    },
+    "Clone" : {
+
+    },
+    "Clone (instant, no extra space)" : {
+
+    },
+    "Clone “%@”" : {
+
+    },
+    "Clone “%@”…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clonar «%@»…"
+          }
+        }
+      }
+    },
+    "Clone…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clonar…"
+          }
+        }
+      }
+    },
+    "Close" : {
+
+    },
+    "Close its window" : {
+
+    },
+    "Collect Diagnostics…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recopilar diagnóstico…"
+          }
+        }
+      }
+    },
+    "Colour in Control Center" : {
+
+    },
+    "Command key" : {
+
+    },
+    "Command-line tool:" : {
+
+    },
+    "Commands from the Mac" : {
+
+    },
+    "Compatible" : {
+
+    },
+    "Configuration" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuración"
+          }
+        }
+      }
+    },
+    "Configure" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar"
+          }
+        }
+      }
+    },
+    "Configure %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar %@"
+          }
+        }
+      }
+    },
+    "Configure…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar…"
+          }
+        }
+      }
+    },
+    "Connect it to my Mac" : {
+
+    },
+    "Connect it to the active virtual machine" : {
+
+    },
+    "Connection" : {
+
+    },
+    "Continue" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar"
+          }
+        }
+      }
+    },
+    "Continue without a source" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar sin origen"
+          }
+        }
+      }
+    },
+    "Control Center" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Centro de control"
+          }
+        }
+      }
+    },
+    "Copy" : {
+
+    },
+    "Copy and paste:" : {
+
+    },
+    "Copy the address" : {
+
+    },
+    "Copy the address of %@" : {
+
+    },
+    "Copying…" : {
+
+    },
+    "Crash reports" : {
+
+    },
+    "Create" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear"
+          }
+        }
+      }
+    },
+    "Create New" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear nueva"
+          }
+        }
+      }
+    },
+    "Create New Snapshot" : {
+
+    },
+    "Create New…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear nueva…"
+          }
+        }
+      }
+    },
+    "Create Your First VM…" : {
+
+    },
+    "Create a VM…" : {
+
+    },
+    "Create a virtual machine, or import one from Parallels." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cree una máquina virtual o importe una desde Parallels."
+          }
+        }
+      }
+    },
+    "Create or import a virtual machine" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear o importar una máquina virtual"
+          }
+        }
+      }
+    },
+    "Created:" : {
+
+    },
+    "Creating…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creando…"
+          }
+        }
+      }
+    },
+    "Ctrl + Alt + Del" : {
+
+    },
+    "Current State" : {
+
+    },
+    "Current state" : {
+
+    },
+    "Custom" : {
+
+    },
+    "Customize settings before installation" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personalizar los ajustes antes de la instalación"
+          }
+        }
+      }
+    },
+    "Default Adapter" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete Snapshot" : {
+
+    },
+    "Delete snapshot %@" : {
+
+    },
+    "Delete the snapshot “%@”?" : {
+
+    },
+    "Delete this snapshot" : {
+
+    },
+    "Description" : {
+
+    },
+    "Description (optional)" : {
+
+    },
+    "Description:" : {
+
+    },
+    "Desktop:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escritorio:"
+          }
+        }
+      }
+    },
+    "Details…" : {
+
+    },
+    "Devices" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos"
+          }
+        }
+      }
+    },
+    "Devices macOS uses with its own driver cannot be given to a VM: macOS 26 allows that only to apps with an Apple entitlement. USB drives and serial devices are handed over another way." : {
+
+    },
+    "Disc image" : {
+
+    },
+    "Disk" : {
+
+    },
+    "Disk size" : {
+
+    },
+    "Disk space" : {
+
+    },
+    "Disk: %lld GiB" : {
+
+    },
+    "Dismiss" : {
+
+    },
+    "Displays" : {
+
+    },
+    "Do not show" : {
+
+    },
+    "Dock" : {
+
+    },
+    "Done" : {
+
+    },
+    "Don’t Save" : {
+
+    },
+    "Download a Linux system" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar un sistema Linux"
+          }
+        }
+      }
+    },
+    "Download macOS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar macOS"
+          }
+        }
+      }
+    },
+    "Download progress" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso de la descarga"
+          }
+        }
+      }
+    },
+    "Download updates automatically" : {
+
+    },
+    "Downloading… %lld%% of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Downloading… %1$lld%% of %2$@"
+          }
+        }
+      }
+    },
+    "Downloads and caches — %@" : {
+
+    },
+    "Drag the image file here." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastre aquí el archivo de imagen."
+          }
+        }
+      }
+    },
+    "Edition:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edición:"
+          }
+        }
+      }
+    },
+    "Encrypt the VM with a password" : {
+
+    },
+    "Engine" : {
+
+    },
+    "Enter Picture in Picture" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrar en imagen en imagen"
+          }
+        }
+      }
+    },
+    "Enter Seamless Mode" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrar en el modo Seamless"
+          }
+        }
+      }
+    },
+    "Error" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        }
+      }
+    },
+    "Every call an AI tool makes is written down here, whether it was allowed or refused. What each VM allows is set under Configure > Options > Sharing > AI tools." : {
+
+    },
+    "Everything in the VM since this snapshot is lost, including changes to its configuration. Take a new snapshot first if you may want the current state back." : {
+
+    },
+    "Exit Seamless Mode" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salir del modo Seamless"
+          }
+        }
+      }
+    },
+    "File" : {
+
+    },
+    "Free Systems" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistemas gratuitos"
+          }
+        }
+      }
+    },
+    "Free Up Disk Space" : {
+
+    },
+    "Freeing Up Space…" : {
+
+    },
+    "Full Disk Access:" : {
+
+    },
+    "Full lets an AI tool revert snapshots, clone, power off and reset this virtual machine, and share folders it can change. Mark a baseline snapshot in Snapshot Manager so that it can only go back to that one." : {
+
+    },
+    "Full screen" : {
+
+    },
+    "General" : {
+
+    },
+    "Generate" : {
+
+    },
+    "Get Windows 11 from Microsoft" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtener Windows 11 de Microsoft"
+          }
+        }
+      }
+    },
+    "Give Windows a new computer name at first start" : {
+
+    },
+    "Go Back" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atrás"
+          }
+        }
+      }
+    },
+    "Go Back and Lose Current State" : {
+
+    },
+    "Go Back to This…" : {
+
+    },
+    "Go To" : {
+
+    },
+    "Go back to “%@”?" : {
+
+    },
+    "Go to Snapshot" : {
+
+    },
+    "Guest" : {
+
+    },
+    "Guest tools" : {
+
+    },
+    "Guest tools for Linux:" : {
+
+    },
+    "Guest tools for Windows:" : {
+
+    },
+    "Guest tools for macOS:" : {
+
+    },
+    "How to Remove…" : {
+
+    },
+    "IP address" : {
+
+    },
+    "Idle timer off: stays running until you suspend it or shut it down" : {
+
+    },
+    "Import" : {
+
+    },
+    "Import a virtual machine from Parallels" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar una máquina virtual de Parallels"
+          }
+        }
+      }
+    },
+    "Import from Parallels…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar desde Parallels…"
+          }
+        }
+      }
+    },
+    "Import “%@”" : {
+
+    },
+    "Imported “%@”" : {
+
+    },
+    "In use" : {
+
+    },
+    "In use by a running virtual machine" : {
+
+    },
+    "Include snapshots (%lld)" : {
+
+    },
+    "Install Command-Line Tool" : {
+
+    },
+    "Install Network Helper…" : {
+
+    },
+    "Install Tandem Tools…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalar Tandem Tools…"
+          }
+        }
+      }
+    },
+    "Install When Stopped" : {
+
+    },
+    "Install Windows automatically" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalar Windows automáticamente"
+          }
+        }
+      }
+    },
+    "Install Windows, Linux or another OS from an image file" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalar Windows, Linux u otro sistema desde un archivo de imagen"
+          }
+        }
+      }
+    },
+    "Install and Restart" : {
+
+    },
+    "Install from an Image File" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalar desde un archivo de imagen"
+          }
+        }
+      }
+    },
+    "Installing Tandem %@" : {
+
+    },
+    "Installing restarts Tandem, which would end %@. Suspend %@ first, or install once %@ stopped." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Installing restarts Tandem, which would end %1$@. Suspend %2$@ first, or install once %3$@ stopped."
+          }
+        }
+      }
+    },
+    "Installing…" : {
+
+    },
+    "Install…" : {
+
+    },
+    "Is the Super key" : {
+
+    },
+    "Is the Windows key" : {
+
+    },
+    "Isolate the VM from the Mac" : {
+
+    },
+    "Its programs are shown as separate Mac windows." : {
+
+    },
+    "Keep %@ on the Mac" : {
+
+    },
+    "Keep Awake" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener activo"
+          }
+        }
+      }
+    },
+    "Keep My VMs" : {
+
+    },
+    "Keep Programs on the Mac…" : {
+
+    },
+    "Keep Windows activation identity" : {
+
+    },
+    "Keep a Windows program on the Mac to pin it to the Dock, find it with Spotlight, and choose it under Open With in Finder. Opening it starts or resumes “%@” by itself." : {
+
+    },
+    "Keep awake" : {
+
+    },
+    "Keep its window open" : {
+
+    },
+    "Keep running" : {
+
+    },
+    "Keep the hardware identity" : {
+
+    },
+    "Keep the suspended state" : {
+
+    },
+    "Keep the toolbar visible in full screen" : {
+
+    },
+    "Keyboard" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teclado"
+          }
+        }
+      }
+    },
+    "Last change" : {
+
+    },
+    "Later" : {
+
+    },
+    "Let the virtual machine use the Mac’s microphone" : {
+
+    },
+    "Lets an AI assistant connected with `tandem mcp` work with your virtual machines, as far as each VM’s AI level allows (Configure > Options > Sharing > AI tools): Observe looks, Operate starts, stops and snapshots, Full can also revert, clone and power off. Running commands inside a VM needs its “Commands from the Mac” permission too. Off by default." : {
+
+    },
+    "Links `tandem` into %@, no administrator password needed. `tandem help` lists its commands; it controls the virtual machines of this app." : {
+
+    },
+    "Linux (ARM64)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linux (ARM64)"
+          }
+        }
+      }
+    },
+    "Location" : {
+
+    },
+    "MAC address" : {
+
+    },
+    "Mac folders" : {
+
+    },
+    "Mac memory the virtual machine holds" : {
+
+    },
+    "Mac port (auto)" : {
+
+    },
+    "Mac port, colon, VM port, separated by commas" : {
+
+    },
+    "Manage Snapshots…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestionar instantáneas…"
+          }
+        }
+      }
+    },
+    "Memory" : {
+
+    },
+    "Memory in use by running virtual machines:" : {
+
+    },
+    "Memory: %lld GiB" : {
+
+    },
+    "Mouse" : {
+
+    },
+    "Move %@ down" : {
+
+    },
+    "Move %@ up" : {
+
+    },
+    "Move VMs to the Trash Too" : {
+
+    },
+    "Move to Trash" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover a la papelera"
+          }
+        }
+      }
+    },
+    "Move your virtual machines to the Trash?" : {
+
+    },
+    "Name" : {
+
+    },
+    "Name (web)" : {
+
+    },
+    "Name and Location" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre y ubicación"
+          }
+        }
+      }
+    },
+    "Name:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre:"
+          }
+        }
+      }
+    },
+    "Needs attention" : {
+
+    },
+    "Network" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Red"
+          }
+        }
+      }
+    },
+    "Network cable connected" : {
+
+    },
+    "Never" : {
+
+    },
+    "New" : {
+
+    },
+    "New Snapshot" : {
+
+    },
+    "New Snapshot…" : {
+
+    },
+    "New…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva…"
+          }
+        }
+      }
+    },
+    "No AI tool has called Tandem yet." : {
+
+    },
+    "No USB devices are plugged into this Mac" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay dispositivos USB conectados a este Mac"
+          }
+        }
+      }
+    },
+    "No Virtual Machines" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna máquina virtual"
+          }
+        }
+      }
+    },
+    "No services of this VM are published to the Mac." : {
+
+    },
+    "No snapshots available" : {
+
+    },
+    "No snapshots yet" : {
+
+    },
+    "No virtual machines" : {
+
+    },
+    "None yet. The first time you download a Linux system, Tandem keeps a prepared copy, so the next one is ready in seconds." : {
+
+    },
+    "Not available yet" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no disponible"
+          }
+        }
+      }
+    },
+    "Not compatible" : {
+
+    },
+    "Not set up" : {
+
+    },
+    "Nothing for this library." : {
+
+    },
+    "Nothing needed changing." : {
+
+    },
+    "Nothing shared yet" : {
+
+    },
+    "OK" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptar"
+          }
+        }
+      }
+    },
+    "Off: the copy starts fresh from its disk. On: it resumes where the original was suspended, with the original's network settings, until it restarts." : {
+
+    },
+    "Off: your VMs stay in %@ and a later Tandem finds them again." : {
+
+    },
+    "Offer to send crash reports" : {
+
+    },
+    "On the Mac" : {
+
+    },
+    "On the Mac, no longer in Windows" : {
+
+    },
+    "Open Full Disk Access" : {
+
+    },
+    "Open Login Items" : {
+
+    },
+    "Open Windows" : {
+
+    },
+    "Operating system" : {
+
+    },
+    "Optional" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcional"
+          }
+        }
+      }
+    },
+    "Other devices on the Mac’s network can connect to port %@ of this Mac." : {
+
+    },
+    "Password:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraseña:"
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar"
+          }
+        }
+      }
+    },
+    "Paused" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En pausa"
+          }
+        }
+      }
+    },
+    "Picture" : {
+
+    },
+    "Play the virtual machine’s sound on the Mac" : {
+
+    },
+    "Port forwarding" : {
+
+    },
+    "Port in the virtual machine" : {
+
+    },
+    "Port on this Mac, automatic if empty" : {
+
+    },
+    "Power" : {
+
+    },
+    "Preferences…" : {
+
+    },
+    "Preparing the system" : {
+
+    },
+    "Print Screen" : {
+
+    },
+    "Problem" : {
+
+    },
+    "Problem: %@" : {
+
+    },
+    "Processor use" : {
+
+    },
+    "Processors" : {
+
+    },
+    "Processors: %lld" : {
+
+    },
+    "Programs found" : {
+
+    },
+    "Programs kept on the Mac" : {
+
+    },
+    "Publish" : {
+
+    },
+    "Published services" : {
+
+    },
+    "QEMU:" : {
+
+    },
+    "Quit Tandem" : {
+
+    },
+    "Reachable from" : {
+
+    },
+    "Read & Write" : {
+
+    },
+    "Read only" : {
+
+    },
+    "Ready" : {
+
+    },
+    "Refresh" : {
+
+    },
+    "Reinstall" : {
+
+    },
+    "Reinstall Tandem Tools…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reinstalar Tandem Tools…"
+          }
+        }
+      }
+    },
+    "Reinstall…" : {
+
+    },
+    "Remove" : {
+
+    },
+    "Remove “%@”?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Eliminar «%@»?"
+          }
+        }
+      }
+    },
+    "Remove “%@”…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar «%@»…"
+          }
+        }
+      }
+    },
+    "Remove…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar…"
+          }
+        }
+      }
+    },
+    "Report page address" : {
+
+    },
+    "Report page:" : {
+
+    },
+    "Require a password to change its configuration" : {
+
+    },
+    "Required" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obligatorio"
+          }
+        }
+      }
+    },
+    "Reset" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer"
+          }
+        }
+      }
+    },
+    "Reset the guest's machine ID, SSH keys and host name at first start" : {
+
+    },
+    "Resolution" : {
+
+    },
+    "Resource Monitor" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitor de recursos"
+          }
+        }
+      }
+    },
+    "Restart" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiniciar"
+          }
+        }
+      }
+    },
+    "Restart Helper" : {
+
+    },
+    "Restart:" : {
+
+    },
+    "Restarting…" : {
+
+    },
+    "Restricted" : {
+
+    },
+    "Restrict…" : {
+
+    },
+    "Resume" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reanudar"
+          }
+        }
+      }
+    },
+    "Retina resolution" : {
+
+    },
+    "Reverse the scrolling direction" : {
+
+    },
+    "Running" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En ejecución"
+          }
+        }
+      }
+    },
+    "Save" : {
+
+    },
+    "Save applies network changes to the running virtual machine where it can. The address and anything else it cannot change now waits for the next start." : {
+
+    },
+    "Save to:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar en:"
+          }
+        }
+      }
+    },
+    "Scale to fit" : {
+
+    },
+    "Seamless Mode" : {
+
+    },
+    "Search" : {
+
+    },
+    "Send Command shortcuts to the virtual machine" : {
+
+    },
+    "Send a key combination to the VM" : {
+
+    },
+    "Served from the VM’s next start" : {
+
+    },
+    "Served while the VM runs" : {
+
+    },
+    "Service name" : {
+
+    },
+    "Set as Baseline" : {
+
+    },
+    "Setup did not finish" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La instalación no terminó"
+          }
+        }
+      }
+    },
+    "Setup was interrupted" : {
+
+    },
+    "Share Until Shutdown…" : {
+
+    },
+    "Share a folder that stops being shared when the virtual machine shuts down" : {
+
+    },
+    "Share my home folder" : {
+
+    },
+    "Share the Mac’s camera" : {
+
+    },
+    "Share the Mac’s printers with the virtual machine" : {
+
+    },
+    "Shared Folders" : {
+
+    },
+    "Shared Network (Recommended)" : {
+
+    },
+    "Shared folders:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpetas compartidas:"
+          }
+        }
+      }
+    },
+    "Shared network:" : {
+
+    },
+    "Sharing" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir"
+          }
+        }
+      }
+    },
+    "Show" : {
+
+    },
+    "Show Log in Finder" : {
+
+    },
+    "Show Logs in Finder" : {
+
+    },
+    "Show Tandem icon in menu bar" : {
+
+    },
+    "Show Virtual Machine in Finder" : {
+
+    },
+    "Show Window" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar ventana"
+          }
+        }
+      }
+    },
+    "Show Windows programs in the Dock in Seamless Mode" : {
+
+    },
+    "Show at actual size" : {
+
+    },
+    "Show in Finder" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar en el Finder"
+          }
+        }
+      }
+    },
+    "Show the boot menu at start-up" : {
+
+    },
+    "Show the problem" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar el problema"
+          }
+        }
+      }
+    },
+    "Show virtual machines in expanded or compact view" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar las máquinas virtuales en vista ampliada o compacta"
+          }
+        }
+      }
+    },
+    "Shut Down" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apagar"
+          }
+        }
+      }
+    },
+    "Shut down" : {
+
+    },
+    "Shut down %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apagar %@"
+          }
+        }
+      }
+    },
+    "Shut down the running virtual machines first." : {
+
+    },
+    "Shut down the virtual machine to change its hardware and sharing. Startup, keyboard and screen behaviour can be changed now." : {
+
+    },
+    "Sign in automatically" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar sesión automáticamente"
+          }
+        }
+      }
+    },
+    "Size:" : {
+
+    },
+    "Size: %lld GiB" : {
+
+    },
+    "Skip This Version" : {
+
+    },
+    "Snapshot" : {
+
+    },
+    "Snapshot %@" : {
+
+    },
+    "Snapshot Manager" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestor de instantáneas"
+          }
+        }
+      }
+    },
+    "Snapshot Manager – %@" : {
+
+    },
+    "Snapshot Name:" : {
+
+    },
+    "Snapshot Parameters" : {
+
+    },
+    "Snapshot Properties…" : {
+
+    },
+    "Snapshots" : {
+
+    },
+    "Software Update" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualización de software"
+          }
+        }
+      }
+    },
+    "Sound" : {
+
+    },
+    "Source" : {
+
+    },
+    "Space used on this Mac" : {
+
+    },
+    "Start" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar"
+          }
+        }
+      }
+    },
+    "Start %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar %@"
+          }
+        }
+      }
+    },
+    "Start automatically" : {
+
+    },
+    "Start from" : {
+
+    },
+    "Start in" : {
+
+    },
+    "Start in full screen" : {
+
+    },
+    "Start “%@” to choose from its programs." : {
+
+    },
+    "Starting" : {
+
+    },
+    "Starting…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciando…"
+          }
+        }
+      }
+    },
+    "Status" : {
+
+    },
+    "Steps 2 and 3 are optional: shared networking, shared folders and the clipboard work without them. They are needed for bridged networking and for giving USB devices and drives to a virtual machine. Tandem never asks for your password for them; macOS asks you to switch them on." : {
+
+    },
+    "Stop" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener"
+          }
+        }
+      }
+    },
+    "Stop (power off)" : {
+
+    },
+    "Stop publishing %@" : {
+
+    },
+    "Stop publishing “%@”" : {
+
+    },
+    "Stop sharing %@" : {
+
+    },
+    "Stop sharing everything with this virtual machine" : {
+
+    },
+    "Stop sharing this folder" : {
+
+    },
+    "Stop sharing this folder now" : {
+
+    },
+    "Stopped" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detenida"
+          }
+        }
+      }
+    },
+    "Stopping" : {
+
+    },
+    "Stopping…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deteniéndose…"
+          }
+        }
+      }
+    },
+    "Stop…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener…"
+          }
+        }
+      }
+    },
+    "Stretch to fill" : {
+
+    },
+    "Suspend" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspender"
+          }
+        }
+      }
+    },
+    "Suspend and Install" : {
+
+    },
+    "Suspend when idle" : {
+
+    },
+    "Suspended" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspendida"
+          }
+        }
+      }
+    },
+    "System:" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistema:"
+          }
+        }
+      }
+    },
+    "TPM 2.0 chip" : {
+
+    },
+    "Take Screenshot" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capturar pantalla"
+          }
+        }
+      }
+    },
+    "Take Snapshot" : {
+
+    },
+    "Take Snapshot…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomar instantánea…"
+          }
+        }
+      }
+    },
+    "Tandem" : {
+
+    },
+    "Tandem %@ is available" : {
+
+    },
+    "Tandem %@ is the newest version." : {
+
+    },
+    "Tandem could not update" : {
+
+    },
+    "Tandem downloads the system from its maker, checks the download, and sets the virtual machine up for you." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tandem descarga el sistema de su fabricante, comprueba la descarga y prepara la máquina virtual por usted."
+          }
+        }
+      }
+    },
+    "Tandem helper (network and USB):" : {
+
+    },
+    "Tandem installs only updates signed with its release key and by the same developer, and never while a virtual machine runs." : {
+
+    },
+    "Tandem is up to date" : {
+
+    },
+    "Tandem makes this account in the new system. The password is kept on a setup disc inside the virtual machine until its first start has finished, then that disc is deleted.%@" : {
+
+    },
+    "Tandem quit unexpectedly" : {
+
+    },
+    "Tandem stopped before this system was downloaded and prepared. Remove this virtual machine in Control Center and create it again; what was already downloaded is kept and used." : {
+
+    },
+    "Tandem supports .iso files for ARM64 (Apple silicon) systems." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tandem admite archivos .iso de sistemas ARM64 (Apple silicon)."
+          }
+        }
+      }
+    },
+    "Tandem will install the update when %@ %@ stopped." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tandem will install the update when %1$@ %2$@ stopped."
+          }
+        }
+      }
+    },
+    "Templates" : {
+
+    },
+    "That can’t be imported" : {
+
+    },
+    "That didn’t work" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No ha funcionado"
+          }
+        }
+      }
+    },
+    "The Parallels VM must stay where it is and must not be started in Parallels again." : {
+
+    },
+    "The VM library could not be opened" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo abrir la biblioteca de máquinas virtuales"
+          }
+        }
+      }
+    },
+    "The VM library could not be read." : {
+
+    },
+    "The VM reported a problem" : {
+
+    },
+    "The address stays the same when the VM restarts or gets another network address. Names under %@ resolve on this Mac." : {
+
+    },
+    "The address stays the same when the VM restarts or gets another network address. Names under “localhost” work in browsers and curl. To use %@ in every program, run this once in Terminal:" : {
+
+    },
+    "The baseline is the one snapshot an AI tool may go back to. Without one, an AI tool with the Full level may go back to any snapshot." : {
+
+    },
+    "The control connection is not available: %@" : {
+
+    },
+    "The copy is made instantly and shares disk space with the original until either one changes." : {
+
+    },
+    "The disk only takes up the space the system actually uses, up to %lld GiB.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The disk only takes up the space the system actually uses, up to %1$lld GiB.%2$@"
+          }
+        }
+      }
+    },
+    "The helper, settings%@ and the app are removed. Your virtual machines stay." : {
+
+    },
+    "The helper, settings, caches, the app and your virtual machines are removed." : {
+
+    },
+    "The older helper, installed with the script, is still on this Mac (%@). It serves the same connection, so this copy cannot install its own until it is removed. In Terminal, from the folder Tandem was built in: sudo scripts/install-net-helper.sh --uninstall" : {
+
+    },
+    "The system could not be set up" : {
+
+    },
+    "The virtual machine is running: changes here apply immediately." : {
+
+    },
+    "The virtual machine is stopped first. To revert without saving, click “Don’t Save”: everything since the last snapshot is then lost." : {
+
+    },
+    "The virtual machine is suspended. Resume it and shut it down to change its hardware and sharing. Startup, keyboard and screen behaviour can be changed now." : {
+
+    },
+    "The virtual machine is suspended. Resume it to change what it shares." : {
+
+    },
+    "The virtual machine pauses for a few seconds while its memory is saved." : {
+
+    },
+    "The virtual machine, its disks and its snapshots go to the Trash. They take up disk space until you empty the Trash." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La máquina virtual, sus discos y sus instantáneas se mueven a la papelera. Ocupan espacio en disco hasta que la vacíe."
+          }
+        }
+      }
+    },
+    "This VM cannot be imported yet" : {
+
+    },
+    "This VM reported a problem" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta máquina virtual indicó un problema"
+          }
+        }
+      }
+    },
+    "This image is for Intel processors and cannot run on this Mac. Download the ARM64 edition instead." : {
+
+    },
+    "This virtual machine is no longer in the library." : {
+
+    },
+    "This virtual machine’s account has no password. On a bridged network, or with published services, other devices could reach it. Give the account a password inside the guest first." : {
+
+    },
+    "Three one-time checks, then create your first virtual machine." : {
+
+    },
+    "To revert without saving, click “Don’t Save”: everything since the last snapshot is then lost." : {
+
+    },
+    "Troubleshooting" : {
+
+    },
+    "Try Again" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar"
+          }
+        }
+      }
+    },
+    "Try earlier" : {
+
+    },
+    "Try later" : {
+
+    },
+    "USB" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "USB"
+          }
+        }
+      }
+    },
+    "Uninstall" : {
+
+    },
+    "Uninstall Tandem" : {
+
+    },
+    "Uninstall Tandem?" : {
+
+    },
+    "Uninstall Tandem…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar Tandem…"
+          }
+        }
+      }
+    },
+    "Uninstall…" : {
+
+    },
+    "Until shutdown" : {
+
+    },
+    "Update feed address" : {
+
+    },
+    "Update feed:" : {
+
+    },
+    "Updates" : {
+
+    },
+    "Use Default" : {
+
+    },
+    "Use all displays in full screen" : {
+
+    },
+    "Use an https:// address or a file path." : {
+
+    },
+    "Use the original (instant, no extra space)" : {
+
+    },
+    "Uses no memory" : {
+
+    },
+    "VM port" : {
+
+    },
+    "Version %@ (build %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Version %1$@ (build %2$@)"
+          }
+        }
+      }
+    },
+    "Version:" : {
+
+    },
+    "View" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visualización"
+          }
+        }
+      }
+    },
+    "Virtual Machine" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Máquina virtual"
+          }
+        }
+      }
+    },
+    "Virtual machines folder:" : {
+
+    },
+    "Virtual machines made from a template share most of its space, so deleting one frees less while those machines exist. A deleted template is made again the next time that system is chosen." : {
+
+    },
+    "Waiting for Windows to list its programs…" : {
+
+    },
+    "Welcome to Tandem" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bienvenido a Tandem"
+          }
+        }
+      }
+    },
+    "Welcome…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bienvenida…"
+          }
+        }
+      }
+    },
+    "What this Mac supports for this virtual machine" : {
+
+    },
+    "When I log in to the Mac" : {
+
+    },
+    "When Tandem opens" : {
+
+    },
+    "When Tandem quits" : {
+
+    },
+    "When a new external device is detected:" : {
+
+    },
+    "When idle" : {
+
+    },
+    "When its window is closed" : {
+
+    },
+    "When the sizes differ" : {
+
+    },
+    "Who may run commands:" : {
+
+    },
+    "Windows 11 (ARM64)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 11 (ARM64)"
+          }
+        }
+      }
+    },
+    "Windows Applications on the Mac" : {
+
+    },
+    "Windows Applications on the Mac — %@" : {
+
+    },
+    "Windows Key" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tecla Windows"
+          }
+        }
+      }
+    },
+    "Windows Programs" : {
+
+    },
+    "Windows is set up without questions: the disk, this account, drivers and Tandem’s guest tools. It takes about ten minutes. The password is kept on a setup disc inside the virtual machine until the installation has finished, then that disc is deleted.%@" : {
+
+    },
+    "Windows programs" : {
+
+    },
+    "Windows programs in the Dock" : {
+
+    },
+    "Windows was installed for Parallels’ hardware. The installer disc is used once to adjust its drivers; nothing is reinstalled. Without the driver disc Windows has no network and a small fixed screen." : {
+
+    },
+    "Windows, Linux and macOS virtual machines on Apple silicon." : {
+
+    },
+    "Without a source the virtual machine is created empty; attach an installer later under Configure > Hardware > CD/DVD." : {
+
+    },
+    "Works as on the Mac" : {
+
+    },
+    "You have %@. The new version is %@%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You have %1$@. The new version is %2$@%3$@."
+          }
+        }
+      }
+    },
+    "You have Tandem %@." : {
+
+    },
+    "You will no longer be able to go back to this point. The VM itself is not changed. This cannot be undone." : {
+
+    },
+    "You’re about to revert to “%@”. Save the current state as a new snapshot?" : {
+
+    },
+    "starting" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iniciando"
+          }
+        }
+      }
+    },
+    "“%@” Configuration" : {
+
+    },
+    "“%@” is in Seamless Mode" : {
+
+    },
+    "“Unverified” means written or offered by macOS but never run by Tandem with the real thing. “Experimental” works in a first form." : {
+
+    },
+    "→ VM port %@" : {
+
+    }
+  },
+  "version" : "1.0"
+}

@@ -26,8 +26,10 @@ public final class QEMUEngine: VMEngine {
     private var stopRequested = false
     /// Set by `prepareSnapshot`: whether the VM ran before, so `finishSnapshot` resumes only then.
     private var snapshotPause: SnapshotPause?
-    /// Held while a bridged VM runs; closing it ends the bridge.
+    /// Held while a bridged VM runs; closing it ends the bridge. Once the VM is up, `networkLive` owns it.
     private var bridge: BridgeLease?
+    /// Applies network changes to the running VM and owns its bridge (NetworkLive.swift).
+    var networkLive: NetworkLiveApplier?
     /// USB devices redirected through the root helper, by `HostUSBDevice.qemuID` (USBDevices.swift).
     var usbLeases: [String: USBLease] = [:]
     /// USB drives handed over as their raw disk (the helper's lease), by `qemuID`.
@@ -156,6 +158,14 @@ public final class QEMUEngine: VMEngine {
             let qmp = try await QMPClient.connect(path: paths.qmp, timeout: 15)
             qmp.onEvent = { [weak self] name, data in Task { @MainActor in self?.handle(event: name, data: data) } }
             self.qmp = qmp
+            let bridgePeer = paths.network
+            let live = NetworkLiveApplier(monitor: qmp, current: network, bridge: bridge, localSocket: bridgePeer,
+                                          hostServicePort: { [weak self] in self?.hostServicePort },
+                                          serviceBackends: { [weak self] in self?.serviceBackends ?? [:] },
+                                          openBridge: { try Self.openBridge($0, peerPath: bridgePeer) })
+            networkLive = live
+            bridge = nil
+            if !network.cableIsConnected { _ = await live.apply(network, policy: SharingPolicy(bundle.config)) }
 
             let fd = try await UnixSocket.connect(path: paths.guestLink, timeout: 5)
             let stream = FDStream(fileDescriptor: fd)
@@ -178,6 +188,7 @@ public final class QEMUEngine: VMEngine {
             stopRequested = true
             killAll()
             bridge?.close(); bridge = nil
+            networkLive?.shutdown(); networkLive = nil
             if qemu == nil {
                 // Nothing will exit to clean up after this run, so give the claim up here. With QEMU started,
                 // its exit does that once it is really gone.
@@ -252,7 +263,7 @@ public final class QEMUEngine: VMEngine {
         var changed = foldersDetached
         if !changed, let toolchain, let current = try? VMBundle.load(from: bundle.url),
            let arguments = try? QEMUCommandBuilder.arguments(bundle: current, toolchain: toolchain, paths: paths, display: displayMode,
-                                                             guestToolsISO: bootToolsISO, bridgeSocket: bridge?.helperSocketPath ?? "unused",
+                                                             guestToolsISO: bootToolsISO, bridgeSocket: networkLive?.bridge?.helperSocketPath ?? bridge?.helperSocketPath ?? "unused",
                                                              hostServicePort: hostServicePort, serviceBackends: serviceBackends) {
             changed = Self.devices(in: arguments) != bootDevices
         }
@@ -481,6 +492,7 @@ public final class QEMUEngine: VMEngine {
         }
         qemu = nil; swtpm = nil
         bridge?.close(); bridge = nil
+        networkLive?.shutdown(); networkLive = nil
         // The helper gives each device back to macOS when its lease ends.
         for lease in usbLeases.values { lease.close() }
         usbLeases = [:]

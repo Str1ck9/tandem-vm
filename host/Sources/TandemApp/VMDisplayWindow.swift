@@ -124,8 +124,10 @@ struct VMDisplayWindow: View {
                 } else if let provisioning = session.provisioning {
                     // The system is being downloaded and prepared: a bar that fills, and what is happening.
                     ProgressView(value: provisioning.fraction).progressViewStyle(.linear).frame(width: 360).colorScheme(.dark)
+                        .accessibilityLabel("Preparing the system")
+                        .accessibilityValue(provisioning.fraction.map { "\(Int($0 * 100)) percent" } ?? "starting")
                 } else if session.setupInterrupted {
-                    Image(systemName: "exclamationmark.triangle").font(.system(size: 54)).foregroundStyle(.white.opacity(0.8))
+                    Image(systemName: "exclamationmark.triangle").font(.system(size: 54)).foregroundStyle(.white.opacity(0.8)).accessibilityLabel("Setup was interrupted")
                 } else {
                     ProgressView().controlSize(.large).colorScheme(.dark)
                 }

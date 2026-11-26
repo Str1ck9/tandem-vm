@@ -70,7 +70,7 @@ struct ImportSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
-                Image(systemName: vm.guestOS?.symbol ?? "questionmark.square").font(.system(size: 30)).frame(width: 40)
+                Image(systemName: vm.guestOS?.symbol ?? "questionmark.square").font(.system(size: 30)).frame(width: 40).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(notes == nil ? "Import “\(vm.name)”" : "Imported “\(name.isEmpty ? vm.name : name)”").font(.title2).bold()
                     Text(summary).foregroundStyle(.secondary)

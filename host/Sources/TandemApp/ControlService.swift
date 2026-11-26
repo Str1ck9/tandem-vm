@@ -21,16 +21,22 @@ final class ControlService {
     nonisolated func handle(_ request: ControlRequest) async -> ControlResponse {
         await MainActor.run { () -> Task<ControlResponse, Never> in
             Task { @MainActor in
+                let response: ControlResponse
                 do {
                     try ControlGate.check(request, settings: ControlSettings.load(libraryRoot: self.libraryRoot))
-                    return .success(request.id, try await self.perform(request))
+                    response = .success(request.id, try await self.perform(request))
                 } catch let error as ControlError {
-                    return .failure(request.id, error)
+                    response = .failure(request.id, error)
                 } catch let error as VMError {
-                    return .failure(request.id, .failed(error.message, detail: error.detail))
+                    response = .failure(request.id, .failed(error.message, detail: error.detail))
                 } catch {
-                    return .failure(request.id, .failed(error.localizedDescription))
+                    response = .failure(request.id, .failed(error.localizedDescription))
                 }
+                // Everything an AI tool asks is written down, allowed or not.
+                if request.client == .mcp {
+                    AIActivityLog.append(AIActivityLog.entry(for: request, response: response), libraryRoot: self.libraryRoot)
+                }
+                return response
             }
         }.value
     }
@@ -52,6 +58,9 @@ final class ControlService {
         }
         let session = try find(r.vm ?? "", in: model)
         let fromAI = r.client == .mcp
+        // An AI tool is held to the VM's AI level, read from the bundle's files so that a level the person
+        // has just lowered applies at once (the same reason `decidingPolicy` exists).
+        if fromAI { try AIAuthorization.authorize(r, vmName: session.config.name, tier: decidingPolicy(session).aiTier) }
         switch op {
         case .info: return info(session)
         case .ip:
@@ -85,10 +94,11 @@ final class ControlService {
             session.reset()
             return state(session)
         case .snapshotList:
-            let head = session.snapshotHead
+            let head = session.snapshotHead, baseline = session.snapshotBaseline
             return .array(session.snapshots.map { s in
                 .object(["id": .string(s.id.uuidString), "name": .string(s.name), "created": .string(ISO8601DateFormatter().string(from: s.created)),
-                         "note": .optional(s.note), "current": JSON(s.id == head), "includesRunningState": JSON(session.snapshotIncludesRunningState(s))])
+                         "note": .optional(s.note), "current": JSON(s.id == head), "baseline": JSON(s.id == baseline),
+                         "includesRunningState": JSON(session.snapshotIncludesRunningState(s))])
             })
         case .clone:
             let options = CloneOptions(name: r.string("name"), includeSnapshots: r.bool("includeSnapshots") ?? false,
@@ -110,6 +120,10 @@ final class ControlService {
             return .object(["id": .string(taken.id.uuidString), "name": .string(taken.name)])
         case .snapshotRevert:
             let snapshot = try findSnapshot(r.string("snapshot") ?? "", in: session)
+            // With a baseline snapshot, an AI tool may go back to that one only.
+            let baseline = session.snapshotBaseline
+            try AIAuthorization.authorizeRevert(r, vmName: session.config.name, target: snapshot.id, targetName: snapshot.name,
+                                                baseline: baseline, baselineName: session.snapshots.first { $0.id == baseline }?.name)
             let wasActive = session.state.isActive
             try await session.goTo(snapshot, savingCurrentAs: nil)
             // A running VM is started again from the snapshot; answer once it runs.
@@ -119,6 +133,16 @@ final class ControlService {
             let snapshot = try findSnapshot(r.string("snapshot") ?? "", in: session)
             try await session.deleteSnapshot(snapshot)
             return .object(["deleted": .string(snapshot.name)])
+        case .snapshotBaseline:
+            // The person's decision (an AI tool is refused above): a snapshot's name or id, or "none".
+            let wanted = r.string("snapshot") ?? ""
+            if wanted.isEmpty || wanted == "none" {
+                try session.setSnapshotBaseline(nil)
+                return .object(["baseline": .null])
+            }
+            let snapshot = try findSnapshot(wanted, in: session)
+            try session.setSnapshotBaseline(snapshot)
+            return .object(["baseline": .string(snapshot.name)])
         case .screenshot:
             guard let image = session.guestImage() else {
                 throw ControlError.failed("There is no picture of “\(session.config.name)”’s screen.",
@@ -127,14 +151,23 @@ final class ControlService {
             guard let png = VMSession.png(image, maxWidth: r.int("maxWidth")) else { throw ControlError.failed("The screenshot could not be encoded.") }
             return .object(["png": .string(png.base64EncodedString()), "width": JSON(image.width), "height": JSON(image.height)])
         case .sharing:
-            if let wanted = r.string("commands") {
-                // Who may run commands is the user's decision: an AI tool may not widen its own access.
-                if fromAI { throw ControlError.refused("AI tools cannot change who may run commands in a virtual machine.") }
-                guard let access = CommandAccess(rawValue: wanted) else {
-                    throw ControlError("bad-request", "Commands must be one of: \(CommandAccess.allCases.map(\.rawValue).joined(separator: ", ")).")
-                }
+            if r.string("commands") != nil || r.string("aiTier") != nil {
+                // Who may run commands and what AI tools may do is the user's decision: an AI tool may not widen
+                // its own access (the check above refuses it; this is the same rule where the change is made).
+                if fromAI { throw ControlError.refused("AI tools cannot change who may use a virtual machine.") }
                 var profile = decidingPolicy(session).profile
-                profile.commands = access
+                if let wanted = r.string("commands") {
+                    guard let access = CommandAccess(rawValue: wanted) else {
+                        throw ControlError("bad-request", "Commands must be one of: \(CommandAccess.allCases.map(\.rawValue).joined(separator: ", ")).")
+                    }
+                    profile.commands = access
+                }
+                if let wanted = r.string("aiTier") {
+                    guard let tier = AITier(rawValue: wanted) else {
+                        throw ControlError("bad-request", "The AI level must be one of: \(AITier.allCases.map(\.rawValue).joined(separator: ", ")).")
+                    }
+                    profile.aiTier = tier
+                }
                 try session.setSharing(profile)
                 return await settledSharing(session)
             }
@@ -226,6 +259,7 @@ final class ControlService {
                                   "addresses": .array((g.ipAddresses ?? []).map(JSON.string))])
         }
         o["commands"] = .string(s.sharingPolicy.commands.rawValue)
+        o["aiTier"] = .string(s.sharingPolicy.aiTier.rawValue)
         o["snapshots"] = JSON(s.snapshots.count)
         o["keepAwake"] = JSON(s.power.keepAwake)
         if let error = s.errorMessage { o["error"] = .string(error) }
@@ -240,7 +274,8 @@ final class ControlService {
             }),
             "clipboard": .string(policy.clipboard.rawValue), "usb": JSON(policy.usbAllowed),
             "network": .object(["outbound": JSON(policy.network.outbound), "inbound": JSON(policy.network.inbound), "bridged": JSON(policy.network.bridged)]),
-            "commands": .string(policy.commands.rawValue), "preset": .optional(policy.profile.preset?.rawValue),
+            "commands": .string(policy.commands.rawValue), "aiTier": .string(policy.aiTier.rawValue),
+            "preset": .optional(policy.profile.preset?.rawValue),
             "summary": .array(SharedFolderService.summaryLines(policy.summary(network: s.config.network), pendingNote: s.state.isActive ? s.sharingNote : nil).map(JSON.string)),
             // What a running VM only gets at its next start (QEMU attaches Linux folders when it starts).
             "pending": .optional(s.state.isActive ? s.sharingNote : nil),
@@ -324,7 +359,8 @@ final class ControlService {
         if fromAI, let refusal = SharingEdit.aiShareRefusal(path: path, home: FileManager.default.homeDirectoryForCurrentUser, libraryRoot: libraryRoot) {
             throw ControlError.refused(refusal, detail: "You can share it yourself in Configure > Options > Sharing.")
         }
-        let readOnly = r.bool("readOnly") ?? false
+        // An AI tool's share is read-only unless it asks otherwise (and then needs the Full level).
+        let readOnly = r.bool("readOnly") ?? fromAI
         if r.bool("temporary") ?? false {
             try s.shareTemporarily(path: path, readOnly: readOnly)
         } else {

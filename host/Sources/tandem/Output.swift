@@ -36,6 +36,7 @@ enum Output {
                 lines.append("addresses: \((guest["addresses"]?.array ?? []).compactMap(\.string).joined(separator: ", "))")
             }
             lines.append("commands:  \(r["commands"]?.string ?? "")")
+            lines.append("AI level:  \(r["aiTier"]?.string ?? "")")
             lines.append("snapshots: \(r["snapshots"]?.int ?? 0)")
             if let error = r["error"]?.string { lines.append("error:     \(error)") }
             lines.append("bundle:    \(r["bundle"]?.string ?? "")")
@@ -48,7 +49,7 @@ enum Output {
             let rows = r.array ?? []
             if rows.isEmpty { return "No snapshots.\n" }
             return rows.map { s in
-                "\(s["current"]?.bool == true ? "*" : " ") \(String((s["id"]?.string ?? "").prefix(8)).lowercased())  \(pad(s["name"]?.string ?? "", 30))\(s["created"]?.string ?? "")\(s["includesRunningState"]?.bool == true ? "  (with memory)" : "")"
+                "\(s["current"]?.bool == true ? "*" : " ") \(String((s["id"]?.string ?? "").prefix(8)).lowercased())  \(pad(s["name"]?.string ?? "", 30))\(s["created"]?.string ?? "")\(s["includesRunningState"]?.bool == true ? "  (with memory)" : "")\(s["baseline"]?.bool == true ? "  (baseline)" : "")"
             }.joined(separator: "\n") + "\n"
         case .snapshotTake: return "Took snapshot “\(r["name"]?.string ?? "")”.\n"
         case .clone:
@@ -57,8 +58,13 @@ enum Output {
             return "Cloned as “\(r["name"]?.string ?? "")” (\(identity)); about \(mib) MiB of disk used so far.\n"
         case .snapshotRevert: return "Went back to “\(r["reverted"]?.string ?? "")”; the VM is \(r["state"]?.string ?? "").\n"
         case .snapshotDelete: return "Deleted snapshot “\(r["deleted"]?.string ?? "")”.\n"
+        case .snapshotBaseline:
+            if let name = r["baseline"]?.string { return "“\(name)” is the baseline: AI tools may only go back to it.\n" }
+            return "No baseline snapshot: AI tools with the Full level may go back to any snapshot.\n"
         case .sharing, .share, .unshare:
-            return (r["summary"]?.array ?? []).compactMap(\.string).joined(separator: "\n") + "\n"
+            var lines = (r["summary"]?.array ?? []).compactMap(\.string)
+            if let tier = r["aiTier"]?.string { lines.append("AI tools: \(tier)") }
+            return lines.joined(separator: "\n") + "\n"
         case .services:
             let rows = r.array ?? []
             if rows.isEmpty { return "No published services.\n" }

@@ -629,7 +629,7 @@ do {
             let s = try BundleLease.with(bundle, purpose: "taking a snapshot") { _ in try store.create(name: value, config: bundle.config) }
             print("Took snapshot \(s.name) (\(s.id.uuidString.prefix(8).lowercased()))")
         case "revert":
-            let s = pick(); try BundleLease.with(bundle, purpose: "going back to a snapshot") { _ in try store.revert(to: s.id) }
+            let s = pick(); try BundleLease.with(bundle, purpose: "going back to a snapshot") { _ in try store.revertKeepingAccess(to: s.id) }
             print("Went back to \(s.name)")
         case "delete":
             let s = pick(); try BundleLease.with(bundle, purpose: "deleting a snapshot") { _ in try store.delete(s.id) }
@@ -860,6 +860,111 @@ do {
                         } catch { print("exec: failed: \(error.localizedDescription)") }
                     }
                     print("exec-script: done")
+                }
+            }
+        }
+        if let script = args.options["link-script"] {
+            // Tests: once the guest tools first connect (and --link-delay seconds have passed), run the lines of a
+            // file one after the other: `sleep N`, `programs`, `launch <program name>`, `info <program name>`,
+            // `open <share/path> [with <program name>]`, `windows`, `activate|close|minimize|restore <title part>`,
+            // `drop <mac file> <x> <y>`, `dragout <x> <y>`, `fetch`, `exec <command>`. Prints what comes back.
+            let lines = ((try? String(contentsOfFile: script, encoding: .utf8)) ?? "")
+                .split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+            let delay = Double(args.options["link-delay"] ?? "") ?? 20
+            nonisolated(unsafe) var programs: [GuestProgram] = []
+            nonisolated(unsafe) var windows: [GuestWindow] = []
+            nonisolated(unsafe) var dragItems: GuestDragOutItems?
+            let programHandler = link.onProgramList
+            link.onProgramList = { list in programHandler?(list); programs = list }
+            let reportHandler = link.onWindowReport
+            link.onWindowReport = { list in reportHandler?(list); windows = list.windows }
+            let infoHandler = link.onProgramInfo
+            link.onProgramInfo = { info, logo in
+                infoHandler?(info, logo)
+                print("info: [\(info.id)] target “\(info.target)”, logo \(logo.count) bytes, opens \(info.extensions.count) types: \(info.extensions.prefix(12).joined(separator: " "))")
+            }
+            let documentHandler = link.onDocumentResult
+            link.onDocumentResult = { result in documentHandler?(result); print("open: request \(result.request) \(result.status) \(result.message)") }
+            link.onDragOutItems = { items in print("dragout: \(items.paths) \(items.message ?? "")"); dragItems = items }
+            link.onDropResult = { r in print("drop: \(r.status) into “\(r.folder)”, \(r.files) files \(r.message ?? "")") }
+            let hello = link.onHello
+            nonisolated(unsafe) var started = false
+            let dropRoot = FileDrop.dropRoot(bundle)
+            let inboxRoot = FileDrop.inboxRoot(bundle)
+            nonisolated(unsafe) var requestNumber: UInt32 = 100
+            link.onHello = { h in
+                hello?(h)
+                guard !started else { return }
+                started = true
+                // The hidden shares files dropped on the guest and sent from it go through, as the app serves them.
+                try? FileManager.default.createDirectory(at: dropRoot, withIntermediateDirectories: true)
+                try? FileManager.default.createDirectory(at: inboxRoot, withIntermediateDirectories: true)
+                folders.setTransferShares([WebDAVServer.Share(name: FileDrop.dropShare, root: dropRoot, readOnly: true),
+                                           WebDAVServer.Share(name: FileDrop.inboxShare, root: inboxRoot, readOnly: false)])
+                Task {
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    for line in lines {
+                        let parts = line.split(separator: " ", maxSplits: 1).map(String.init)
+                        let verb = parts[0], rest = parts.count > 1 ? parts[1] : ""
+                        print("link-script> \(line)")
+                        switch verb {
+                        case "sleep": try? await Task.sleep(nanoseconds: UInt64((Double(rest) ?? 1) * 1_000_000_000))
+                        case "programs":
+                            link.requestPrograms()
+                            try? await Task.sleep(nanoseconds: 2_000_000_000)
+                            print("programs: \(programs.count) listed")
+                        case "launch":
+                            if let p = programs.first(where: { $0.name.caseInsensitiveCompare(rest) == .orderedSame }) { link.launchProgram(id: p.id) }
+                            else { print("launch: no program named \(rest)") }
+                        case "info":
+                            if let p = programs.first(where: { $0.name.caseInsensitiveCompare(rest) == .orderedSame }) { link.requestProgramInfo(id: p.id) }
+                            else { print("info: no program named \(rest)") }
+                        case "open":
+                            let pieces = rest.components(separatedBy: " with ")
+                            let program = pieces.count > 1 ? programs.first { $0.name.caseInsensitiveCompare(pieces[1]) == .orderedSame } : nil
+                            requestNumber += 1
+                            link.openDocuments(request: requestNumber, program: program?.id ?? "", documents: [pieces[0]])
+                        case "windows":
+                            for w in windows { print("  \(w.kind.rawValue) \(w.state.rawValue) \(w.active ? "*" : " ") \(w.x),\(w.y) \(w.width)x\(w.height) id \(w.id) \(w.app) [\(w.class)] “\(w.title)”") }
+                        case "activate", "close", "minimize", "restore":
+                            let action: GuestWindowAction = verb == "activate" ? .activate : verb == "close" ? .close : verb == "minimize" ? .minimize : .restore
+                            if let w = windows.first(where: { $0.kind == .app && $0.title.localizedCaseInsensitiveContains(rest) }) { link.windowAction(action, window: w.id) }
+                            else { print("\(verb): no window with “\(rest)” in its title") }
+                        case "drop":
+                            let words = rest.split(separator: " ").map(String.init)
+                            guard words.count >= 3, let x = Int(words[words.count - 2]), let y = Int(words[words.count - 1]) else { print("drop: <file> <x> <y>"); break }
+                            let file = words.dropLast(2).joined(separator: " ")
+                            do {
+                                var manifest = try FileDrop.stage([URL(fileURLWithPath: file)], in: dropRoot)
+                                manifest.port = folders.port
+                                link.dropFiles(manifest: Data(manifest.guestText.utf8), x: x, y: y)
+                            } catch { print("drop: \(error.localizedDescription)") }
+                        case "dragout":
+                            let n = rest.split(separator: " ").compactMap { Int($0) }
+                            if n.count == 2 { dragItems = nil; link.queryDragOut(x: n[0], y: n[1]) } else { print("dragout: <x> <y>") }
+                        case "fetch":
+                            if let items = dragItems, !items.paths.isEmpty {
+                                let id = GuestDragOutFetch.idPrefix + String(UUID().uuidString.prefix(8)).lowercased()
+                                link.fetchDragOut(GuestDragOutFetch(id: id, paths: items.paths))
+                                print("fetch: asked for \(items.paths.count) files as \(id)")
+                            } else { print("fetch: nothing was selected") }
+                        case "exec", "exec-as":
+                            // `exec-as <user> <command>` runs as that user (Linux guests).
+                            var request = GuestExecRequest(command: rest, elevated: false, timeoutSeconds: 120)
+                            if verb == "exec-as", let space = rest.firstIndex(of: " ") {
+                                request.user = String(rest[..<space])
+                                request.command = String(rest[rest.index(after: space)...])
+                            }
+                            do {
+                                let r = try await link.exec(request)
+                                print("exec: exit \(r.exitCode) \(r.message)")
+                                print(String(decoding: r.stdout, as: UTF8.self) + String(decoding: r.stderr, as: UTF8.self))
+                            } catch { print("exec: failed: \(error.localizedDescription)") }
+                        default: print("link-script: unknown line “\(line)”")
+                        }
+                    }
+                    print("link-script: done")
                 }
             }
         }

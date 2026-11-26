@@ -1,6 +1,7 @@
 import AppKit
 import EngineQEMU
 import GuestLink
+import VMCore
 
 /// Seamless mode: every program window of the guest is shown as a Mac window of its own.
 ///
@@ -105,7 +106,7 @@ final class SeamlessController: NSObject, NSWindowDelegate {
         let point = CGPoint(x: press.x, y: press.y)
         let source = reported.first { $0.state != .minimized && $0.kind != .taskbar
             && CGRect(x: $0.x, y: $0.y, width: $0.width, height: $0.height).contains(point) }
-        guard let source, source.class == "CabinetWClass" || source.class == "ExploreWClass" else { return nil }
+        guard let source, source.class == "CabinetWClass" || source.class == "ExploreWClass" || GuestIntegration.isLinuxFileManager(source.class) else { return nil }
         return press
     }
 

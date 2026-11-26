@@ -119,7 +119,7 @@ final class BootAndSoundArgumentTests: XCTestCase {
         let a = try args(linux("default"))
         XCTAssertEqual(device(a, "virtio-blk-pci,drive=disk0"), "virtio-blk-pci,drive=disk0,bootindex=0")
         XCTAssertEqual(device(a, "usb-storage,bus=usb.0,drive=media0"), "usb-storage,bus=usb.0,drive=media0,removable=on,bootindex=1")
-        XCTAssertFalse(device(a, "virtio-net-pci,netdev=net0")?.contains("bootindex") ?? true)
+        XCTAssertFalse(device(a, "virtio-net-pci,netdev=nic0")?.contains("bootindex") ?? true)
         XCTAssertFalse(a.contains("-boot"))
     }
 
@@ -128,7 +128,7 @@ final class BootAndSoundArgumentTests: XCTestCase {
         config.boot = BootConfig(order: [.cd, .network, .hardDisk], menu: true)
         var a = try args(config)
         XCTAssertEqual(device(a, "usb-storage,bus=usb.0,drive=media0"), "usb-storage,bus=usb.0,drive=media0,removable=on,bootindex=0")
-        XCTAssertTrue(device(a, "virtio-net-pci,netdev=net0")?.hasSuffix(",bootindex=1") ?? false)
+        XCTAssertTrue(device(a, "virtio-net-pci,netdev=nic0")?.hasSuffix(",bootindex=1") ?? false)
         XCTAssertEqual(device(a, "virtio-blk-pci,drive=disk0"), "virtio-blk-pci,drive=disk0,bootindex=2")
         XCTAssertEqual(zip(a, a.dropFirst()).first { $0.0 == "-boot" }?.1, "menu=on,splash-time=5000")
 

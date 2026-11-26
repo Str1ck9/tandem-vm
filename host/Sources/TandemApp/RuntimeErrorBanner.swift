@@ -17,7 +17,7 @@ struct RuntimeErrorBanner: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow).font(.title3)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow).font(.title3).accessibilityLabel("Problem")
             VStack(alignment: .leading, spacing: 3) {
                 Text(lines.title).font(.callout.weight(.semibold))
                 if let detail = lines.detail {

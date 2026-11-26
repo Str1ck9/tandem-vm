@@ -31,8 +31,11 @@ struct PublishedServicesSection: View {
             }
             HStack(spacing: 6) {
                 TextField("", text: $newName, prompt: Text("Name (web)")).labelsHidden().frame(width: 120)
+                    .accessibilityLabel("Service name")
                 TextField("", text: $newGuestPort, prompt: Text("VM port")).labelsHidden().frame(width: 72)
+                    .accessibilityLabel("Port in the virtual machine")
                 TextField("", text: $newHostPort, prompt: Text("Mac port (auto)")).labelsHidden().frame(width: 112)
+                    .accessibilityLabel("Port on this Mac, automatic if empty")
                 Button("Publish") { add() }.disabled(newName.isEmpty || Int(newGuestPort) == nil)
             }
             if let message { Text(message).font(.callout).foregroundStyle(.orange).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) }
@@ -60,8 +63,10 @@ struct PublishedServicesSection: View {
                 Text("→ VM port \(String(service.guestPort))").foregroundStyle(.secondary)
                 Spacer()
                 Button { copy(address) } label: { Image(systemName: "doc.on.doc") }.buttonStyle(.borderless).help("Copy the address")
+                    .accessibilityLabel("Copy the address of \(service.name)")
                 Button { PublishedServices.unpublish(name: service.name, in: &draft); message = nil } label: { Image(systemName: "minus.circle") }
                     .buttonStyle(.borderless).help("Stop publishing “\(service.name)”")
+                    .accessibilityLabel("Stop publishing \(service.name)")
             }
             HStack(spacing: 8) {
                 Picker("Reachable from", selection: Binding(get: { service.scope }, set: { setScope($0, of: service) })) {
